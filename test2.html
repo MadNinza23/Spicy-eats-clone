@@ -1,670 +1,1581 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>perlin noise visualizer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>blow · detector</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ----- CSS Variables (easy to customize) ----- */
+        :root {
+            --bg-primary: #0e0e0e;
+            --bg-card: rgba(229, 229, 229, 0.04);
+            --text-primary: #e5e5e5;
+            --text-secondary: rgba(229, 229, 229, 0.65);
+            --text-muted: rgba(229, 229, 229, 0.35);
+            --accent-glow: #f5c542;
+            --accent-success: #6fcf97;
+            --border-subtle: rgba(229, 229, 229, 0.08);
+            --radius-lg: 32px;
+            --radius-md: 20px;
+            --radius-sm: 12px;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --transition-smooth: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            --shadow-glow: 0 0 60px rgba(245, 197, 66, 0.08);
+            --meter-height: 6px;
+            --max-width: 440px;
+        }
 
-    html, body {
-      height: 100%;
-      background: #0e0e0e;
-      color: #e5e5e5;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      overflow-x: hidden;
-    }
+        /* ----- Reset & Base ----- */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    body {
-      display: flex;
-      flex-direction: column;
-    }
+        html,
+        body {
+            height: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            overflow: hidden;
+            /* prevent scroll on mobile */
+        }
 
-    nav {
-      display: flex;
-      justify-content: space-between;
-      padding: 16px 24px;
-      font-size: 13px;
-      letter-spacing: 0.25em;
-      text-transform: lowercase;
-      opacity: 0.75;
-    }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            min-height: 100dvh;
+            /* dynamic viewport height */;
+        }
 
-    .main-layout {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      gap: 28px;
-      padding: 20px 28px 32px 28px;
-      align-items: start;
-    }
+        /* ----- Navigation (lofi, borderless) ----- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            font-size: 12px;
+            letter-spacing: 0.28em;
+            text-transform: lowercase;
+            opacity: 0.7;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        nav .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        nav .brand i {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        nav .brand span {
+            font-weight: 400;
+        }
+        nav .badge {
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            padding: 4px 12px;
+            border-radius: 40px;
+            background: rgba(229, 229, 229, 0.06);
+            opacity: 0.6;
+        }
 
-    .canvas-area {
-      background: transparent;
-      border-radius: 32px;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(229, 229, 229, 0.08);
-    }
+        /* ----- Main layout (centered) ----- */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px 20px;
+            position: relative;
+            overflow: hidden;
+        }
 
-    canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      background: #050505;
-      cursor: crosshair;
-    }
+        /* ----- shared container ----- */
+        .container {
+            width: 100%;
+            max-width: var(--max-width);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            transition: opacity var(--transition-smooth);
+        }
 
-    .control-panel {
-      background: transparent;
-      border-radius: 32px;
-      padding: 8px 0 0 0;
-      position: sticky;
-      top: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
+        /* ----- Welcome Screen ----- */
+        #welcomeScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            padding: 20px 8px;
+            animation: fadeUp 0.6s ease both;
+        }
+        #welcomeScreen .icon-wrap {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(229, 229, 229, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            transition: background var(--transition-smooth);
+        }
+        #welcomeScreen h1 {
+            font-size: 22px;
+            font-weight: 300;
+            letter-spacing: 0.18em;
+            text-transform: lowercase;
+        }
+        #welcomeScreen p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            line-height: 1.6;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        #welcomeScreen .btn-primary {
+            margin-top: 8px;
+            padding: 14px 44px;
+            border-radius: 60px;
+            border: none;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            font-family: var(--font-sans);
+            touch-action: manipulation;
+        }
+        #welcomeScreen .btn-primary:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 40px rgba(229, 229, 229, 0.06);
+        }
+        #welcomeScreen .btn-primary:active {
+            transform: scale(0.96);
+        }
+        #welcomeScreen .btn-primary:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .welcome-error {
+            font-size: 13px;
+            color: #e8a0a0;
+            letter-spacing: 0.06em;
+            margin-top: 6px;
+            min-height: 1.6em;
+        }
+        .welcome-error .retry-link {
+            color: var(--text-primary);
+            text-decoration: underline;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .welcome-error .retry-link:hover {
+            opacity: 1;
+        }
 
-    .control-group {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 28px;
-      padding: 14px 18px;
-      transition: all 0.2s ease;
-    }
+        /* ----- Detection Screen ----- */
+        #detectionScreen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            animation: fadeUp 0.5s ease both;
+        }
 
-    .control-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      font-size: 12px;
-      letter-spacing: 0.15em;
-      text-transform: lowercase;
-      opacity: 0.8;
-    }
+        /* status badge */
+        .status-badge {
+            font-size: 12px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            padding: 6px 20px;
+            border-radius: 40px;
+            background: rgba(229, 229, 229, 0.05);
+            color: var(--text-secondary);
+            transition: all var(--transition-smooth);
+            text-align: center;
+            backdrop-filter: blur(2px);
+        }
+        .status-badge.listening {
+            color: #8fc9ff;
+            background: rgba(143, 201, 255, 0.08);
+        }
+        .status-badge.calibrating {
+            color: #f5c542;
+            background: rgba(245, 197, 66, 0.08);
+        }
+        .status-badge.detected {
+            color: #6fcf97;
+            background: rgba(111, 207, 151, 0.12);
+            animation: pulseGlow 1.2s ease-in-out infinite;
+        }
+        .status-badge.error {
+            color: #e8a0a0;
+            background: rgba(232, 160, 160, 0.08);
+        }
 
-    .control-header i {
-      width: 20px;
-      font-size: 13px;
-    }
+        /* central mic / visual */
+        .mic-visual {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 4px 0;
+        }
+        .mic-visual .mic-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1.5px solid rgba(229, 229, 229, 0.08);
+            transition: all var(--transition-smooth);
+        }
+        .mic-visual .mic-ring.pulse {
+            border-color: rgba(229, 229, 229, 0.15);
+            animation: ringPulse 1.8s ease-in-out infinite;
+        }
+        .mic-visual .mic-ring.active {
+            border-color: rgba(143, 201, 255, 0.25);
+            box-shadow: 0 0 50px rgba(143, 201, 255, 0.04);
+        }
+        .mic-visual .mic-ring.detected {
+            border-color: rgba(111, 207, 151, 0.35);
+            box-shadow: 0 0 70px rgba(111, 207, 151, 0.08);
+            animation: ringDetected 1s ease-in-out infinite;
+        }
+        .mic-visual .mic-icon {
+            font-size: 42px;
+            color: var(--text-secondary);
+            transition: all var(--transition-smooth);
+            z-index: 2;
+            opacity: 0.8;
+        }
+        .mic-visual .mic-icon.active {
+            color: #8fc9ff;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        .mic-visual .mic-icon.detected {
+            color: #6fcf97;
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .mic-visual .mic-icon.error {
+            color: #e8a0a0;
+            opacity: 0.7;
+        }
 
-    input[type="range"] {
-      width: 100%;
-      height: 4px;
-      -webkit-appearance: none;
-      background: rgba(229, 229, 229, 0.2);
-      border-radius: 10px;
-      outline: none;
-    }
+        /* waveform canvas */
+        .waveform-wrap {
+            width: 100%;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            background: rgba(229, 229, 229, 0.02);
+            overflow: hidden;
+            position: relative;
+            margin-top: -4px;
+        }
+        .waveform-wrap canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            opacity: 0.5;
+            transition: opacity var(--transition-smooth);
+        }
+        .waveform-wrap canvas.active {
+            opacity: 0.85;
+        }
 
-    input[type="range"]:focus {
-      outline: none;
-    }
+        /* level meter */
+        .meter-wrap {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .meter-wrap .meter-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            text-transform: lowercase;
+        }
+        .meter-wrap .meter-track {
+            width: 100%;
+            height: var(--meter-height);
+            border-radius: 40px;
+            background: rgba(229, 229, 229, 0.06);
+            overflow: hidden;
+            position: relative;
+        }
+        .meter-wrap .meter-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 40px;
+            background: linear-gradient(90deg, rgba(143, 201, 255, 0.2), rgba(143, 201, 255, 0.7));
+            transition: width 0.08s linear;
+        }
+        .meter-wrap .meter-fill.detected {
+            background: linear-gradient(90deg, rgba(111, 207, 151, 0.2), #6fcf97);
+        }
+        .meter-wrap .meter-fill.calibrating {
+            background: linear-gradient(90deg, rgba(245, 197, 66, 0.2), rgba(245, 197, 66, 0.6));
+        }
 
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      background: #e5e5e5;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+        /* confidence & stats row */
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 12px;
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            padding: 0 2px;
+        }
+        .stats-row .conf-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stats-row .conf-item .conf-value {
+            font-weight: 400;
+            color: var(--text-primary);
+            min-width: 44px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .stats-row .conf-item .conf-label {
+            opacity: 0.5;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+        }
+        .stats-row .conf-item .conf-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: background var(--transition-smooth);
+        }
+        .stats-row .conf-item .conf-dot.active {
+            background: #8fc9ff;
+            box-shadow: 0 0 12px rgba(143, 201, 255, 0.15);
+        }
+        .stats-row .conf-item .conf-dot.detected {
+            background: #6fcf97;
+            box-shadow: 0 0 16px rgba(111, 207, 151, 0.2);
+        }
 
-    input[type="range"]::-webkit-slider-thumb:hover {
-      background: #ffffff;
-      transform: scale(1.2);
-    }
+        /* blow detected overlay (shown inside detection screen) */
+        .detected-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 8px 6px;
+            animation: fadeUp 0.5s ease both;
+            width: 100%;
+        }
+        .detected-overlay.show {
+            display: flex;
+        }
+        .detected-overlay .big-icon {
+            font-size: 52px;
+            color: #6fcf97;
+            animation: bounceSoft 0.8s ease both;
+        }
+        .detected-overlay .big-text {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 0.14em;
+            color: #6fcf97;
+        }
+        .detected-overlay .sub-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            letter-spacing: 0.06em;
+        }
+        .detected-overlay .btn-reset {
+            margin-top: 6px;
+            padding: 10px 32px;
+            border-radius: 60px;
+            border: 1px solid rgba(229, 229, 229, 0.1);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            font-family: var(--font-sans);
+            touch-action: manipulation;
+        }
+        .detected-overlay .btn-reset:hover {
+            background: rgba(229, 229, 229, 0.04);
+            color: var(--text-primary);
+        }
+        .detected-overlay .btn-reset:active {
+            transform: scale(0.96);
+        }
 
-    .value-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      opacity: 0.6;
-    }
+        /* ----- Debug Panel (collapsible) ----- */
+        .debug-toggle {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(229, 229, 229, 0.04);
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            z-index: 50;
+            backdrop-filter: blur(4px);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .debug-toggle:hover {
+            background: rgba(229, 229, 229, 0.08);
+            color: var(--text-secondary);
+        }
+        .debug-toggle.open {
+            background: rgba(229, 229, 229, 0.06);
+            color: var(--text-primary);
+        }
 
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 6px;
-    }
+        .debug-panel {
+            position: fixed;
+            bottom: 70px;
+            right: 18px;
+            width: 260px;
+            max-width: calc(100vw - 36px);
+            max-height: 60vh;
+            overflow-y: auto;
+            background: rgba(14, 14, 14, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 229, 229, 0.06);
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            transform: translateY(12px) scale(0.97);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 49;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            font-family: var(--font-sans);
+            line-height: 1.8;
+        }
+        .debug-panel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .debug-panel .debug-title {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(229, 229, 229, 0.04);
+            padding-bottom: 6px;
+        }
+        .debug-panel .debug-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .debug-panel .debug-row .debug-label {
+            opacity: 0.5;
+        }
+        .debug-panel .debug-row .debug-value {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+        .debug-panel .debug-row .debug-value.highlight {
+            color: #8fc9ff;
+        }
+        .debug-panel .debug-row .debug-value.detected {
+            color: #6fcf97;
+        }
+        .debug-panel::-webkit-scrollbar {
+            width: 3px;
+        }
+        .debug-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .debug-panel::-webkit-scrollbar-thumb {
+            background: rgba(229, 229, 229, 0.12);
+            border-radius: 40px;
+        }
 
-    .btn-icon, .btn {
-      background: transparent;
-      border: none;
-      color: #e5e5e5;
-      width: 44px;
-      height: 44px;
-      border-radius: 44px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+        /* ----- Utilities & Animations ----- */
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pulseGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(111, 207, 151, 0);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(111, 207, 151, 0.06);
+            }
+        }
+        @keyframes ringPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                transform: scale(1.06);
+                opacity: 1;
+            }
+        }
+        @keyframes ringDetected {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.12);
+                opacity: 1;
+            }
+        }
+        @keyframes bounceSoft {
+            0% {
+                transform: scale(0.6);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.08);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
 
-    .btn-text {
-      width: auto;
-      padding: 0 18px;
-      letter-spacing: 0.1em;
-      font-size: 12px;
-      gap: 8px;
-    }
+        .hidden {
+            display: none !important;
+        }
 
-    .btn-icon:hover, .btn:hover {
-      background: #e5e5e5;
-      color: #0e0e0e;
-    }
+        /* ----- Responsive adjustments ----- */
+        @media (max-width: 480px) {
+            nav {
+                padding: 12px 18px;
+                font-size: 11px;
+            }
+            main {
+                padding: 8px 14px 16px;
+            }
+            .container {
+                gap: 18px;
+            }
+            #welcomeScreen .icon-wrap {
+                width: 64px;
+                height: 64px;
+                font-size: 26px;
+            }
+            #welcomeScreen h1 {
+                font-size: 19px;
+            }
+            #welcomeScreen p {
+                font-size: 13px;
+            }
+            #welcomeScreen .btn-primary {
+                padding: 12px 34px;
+                font-size: 13px;
+            }
+            .mic-visual {
+                width: 96px;
+                height: 96px;
+            }
+            .mic-visual .mic-icon {
+                font-size: 34px;
+            }
+            .waveform-wrap {
+                height: 38px;
+            }
+            .status-badge {
+                font-size: 10px;
+                padding: 4px 16px;
+            }
+            .stats-row {
+                font-size: 11px;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 6px 16px;
+            }
+            .detected-overlay .big-icon {
+                font-size: 42px;
+            }
+            .detected-overlay .big-text {
+                font-size: 18px;
+            }
+            .debug-panel {
+                width: 220px;
+                padding: 14px 16px;
+                font-size: 10px;
+                bottom: 64px;
+                right: 12px;
+            }
+            .debug-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 12px;
+                bottom: 14px;
+                right: 14px;
+            }
+        }
 
-    select {
-      background: transparent;
-      border: none;
-      color: #e5e5e5;
-      padding: 8px 14px;
-      border-radius: 44px;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      font-family: inherit;
-    }
+        @media (max-width: 380px) {
+            .mic-visual {
+                width: 80px;
+                height: 80px;
+            }
+            .mic-visual .mic-icon {
+                font-size: 28px;
+            }
+            .waveform-wrap {
+                height: 32px;
+            }
+            .stats-row .conf-item .conf-value {
+                min-width: 34px;
+            }
+        }
 
-    select option {
-      background: #1a1a1a;
-      color: #e5e5e5;
-    }
+        @media (min-height: 800px) {
+            .mic-visual {
+                width: 140px;
+                height: 140px;
+            }
+            .mic-visual .mic-icon {
+                font-size: 48px;
+            }
+            .waveform-wrap {
+                height: 56px;
+            }
+        }
 
-    input[type="number"] {
-      background: transparent;
-      border: none;
-      border-bottom: 1px solid rgba(229, 229, 229, 0.3);
-      color: #e5e5e5;
-      padding: 8px 0;
-      width: 80px;
-      text-align: center;
-      font-size: 13px;
-      font-family: monospace;
-    }
+        /* touch-friendly buttons */
+        .btn-primary,
+        .btn-reset,
+        .debug-toggle {
+            -webkit-touch-callout: none;
+        }
 
-    .flex-between {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+        /* smooth scrolling for debug */
+        .debug-panel {
+            scroll-behavior: smooth;
+        }
 
-    hr {
-      border: none;
-      height: 1px;
-      background: rgba(229, 229, 229, 0.1);
-      margin: 4px 0;
-    }
-
-    @media (max-width: 880px) {
-      .main-layout {
-        grid-template-columns: 1fr;
-        gap: 28px;
-        padding: 16px;
-      }
-      .control-panel {
-        position: static;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .btn-row {
-        justify-content: center;
-      }
-      .control-group {
-        padding: 12px 14px;
-      }
-    }
-
-    .badge-note {
-      font-size: 10px;
-      opacity: 0.5;
-      letter-spacing: 0.1em;
-      text-align: center;
-      margin-top: 12px;
-    }
-  </style>
+        /* reduce motion if preferred */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 <body>
-<nav>
-  <div>perlin flow</div>
-  <div>noise field</div>
-</nav>
 
-<div class="main-layout">
-  <div class="canvas-area">
-    <canvas id="noiseCanvas" width="800" height="600" style="width:100%; height:auto; aspect-ratio:800/600"></canvas>
-  </div>
-
-  <div class="control-panel">
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-arrows-up-down"></i> <span>scale</span></div>
-      <input type="range" id="scaleSlider" min="0.002" max="0.045" step="0.0005" value="0.012">
-      <div class="value-row"><span>zoom</span><span id="scaleVal">0.0120</span></div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-th"></i> <span>pixel step</span></div>
-      <input type="range" id="resolutionSlider" min="1" max="8" step="1" value="2">
-      <div class="value-row"><span>detail / speed</span><span id="resVal">2</span></div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-dice"></i> <span>seed</span></div>
-      <div class="flex-between">
-        <input type="number" id="seedInput" step="1" value="1337">
-        <button id="randomSeedBtn" class="btn-icon"><i class="fa-solid fa-shuffle"></i></button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-layer-group"></i> <span>octaves</span></div>
-      <input type="range" id="octavesSlider" min="1" max="6" step="1" value="4">
-      <div class="value-row"><span>complexity</span><span id="octVal">4</span></div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-waveform"></i> <span>persistence</span></div>
-      <input type="range" id="persistenceSlider" min="0.2" max="0.9" step="0.01" value="0.55">
-      <div class="value-row"><span>amplitude decay</span><span id="perVal">0.55</span></div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-solid fa-chart-line"></i> <span>lacunarity</span></div>
-      <input type="range" id="lacunaritySlider" min="1.2" max="3.5" step="0.02" value="2.0">
-      <div class="value-row"><span>frequency jump</span><span id="lacVal">2.00</span></div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-header"><i class="fa-regular fa-clock"></i> <span>animation</span></div>
-      <div class="flex-between">
-        <button id="toggleAnimBtn" class="btn btn-text"><i class="fa-regular fa-circle-play"></i> start</button>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <i class="fa-solid fa-gauge-high"></i>
-          <input type="range" id="animSpeedSlider" min="0" max="2.2" step="0.02" value="0.8" style="width: 120px;">
-          <span id="speedVal" style="min-width: 35px;">0.80</span>
+    <!-- ===== NAV ===== -->
+    <nav>
+        <div class="brand">
+            <i class="fa-solid fa-microphone"></i>
+            <span>blow · detector</span>
         </div>
-      </div>
+        <div class="badge">v1 · by h1m</div>
+    </nav>
+
+    <!-- ===== MAIN ===== -->
+    <main>
+
+        <!-- ---- WELCOME SCREEN ---- -->
+        <div id="welcomeScreen" class="container">
+            <div class="icon-wrap">
+                <i class="fa-solid fa-candle"></i>
+            </div>
+            <h1>blow out the candles</h1>
+            <p>
+                Tap the button below and blow into your microphone.
+                We'll detect your breath and celebrate.
+            </p>
+            <button class="btn-primary" id="enableMicBtn">
+                <i class="fa-solid fa-microphone" style="margin-right:10px;"></i>Enable Microphone
+            </button>
+            <div class="welcome-error" id="welcomeError"></div>
+        </div>
+
+        <!-- ---- DETECTION SCREEN ---- -->
+        <div id="detectionScreen" class="container">
+
+            <!-- status badge -->
+            <div class="status-badge" id="statusBadge">waiting…</div>
+
+            <!-- mic visual -->
+            <div class="mic-visual" id="micVisual">
+                <div class="mic-ring" id="micRing"></div>
+                <i class="fa-solid fa-microphone mic-icon" id="micIcon"></i>
+            </div>
+
+            <!-- waveform -->
+            <div class="waveform-wrap" id="waveformWrap">
+                <canvas id="waveformCanvas"></canvas>
+            </div>
+
+            <!-- level meter -->
+            <div class="meter-wrap">
+                <div class="meter-label">
+                    <span>level</span>
+                    <span id="levelPercent">0%</span>
+                </div>
+                <div class="meter-track">
+                    <div class="meter-fill" id="meterFill"></div>
+                </div>
+            </div>
+
+            <!-- stats row -->
+            <div class="stats-row">
+                <div class="conf-item">
+                    <span class="conf-dot" id="confDot"></span>
+                    <span class="conf-label">confidence</span>
+                    <span class="conf-value" id="confValue">0%</span>
+                </div>
+                <div class="conf-item">
+                    <span class="conf-label">state</span>
+                    <span class="conf-value" id="stateLabel" style="opacity:0.6;font-weight:300;">—</span>
+                </div>
+            </div>
+
+            <!-- detected overlay (hidden until blow) -->
+            <div class="detected-overlay" id="detectedOverlay">
+                <div class="big-icon"><i class="fa-solid fa-candle"></i></div>
+                <div class="big-text">blow detected!</div>
+                <div class="sub-text">the candles are out&nbsp;—&nbsp;try again?</div>
+                <button class="btn-reset" id="resetBtn">blow again</button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- ===== DEBUG TOGGLE & PANEL ===== -->
+    <button class="debug-toggle" id="debugToggle" aria-label="Toggle debug panel">
+        <i class="fa-solid fa-bug"></i>
+    </button>
+
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-title">debug</div>
+        <div class="debug-row"><span class="debug-label">rms</span><span class="debug-value" id="dRms">—</span></div>
+        <div class="debug-row"><span class="debug-label">peak</span><span class="debug-value" id="dPeak">—</span></div>
+        <div class="debug-row"><span class="debug-label">baseline</span><span class="debug-value" id="dBaseline">—</span></div>
+        <div class="debug-row"><span class="debug-label">threshold</span><span class="debug-value" id="dThreshold">—</span></div>
+        <div class="debug-row"><span class="debug-label">confidence</span><span class="debug-value" id="dConfidence">—</span></div>
+        <div class="debug-row"><span class="debug-label">timer</span><span class="debug-value" id="dTimer">—</span></div>
+        <div class="debug-row"><span class="debug-label">status</span><span class="debug-value" id="dStatus">—</span></div>
+        <div class="debug-row"><span class="debug-label">calibration</span><span class="debug-value" id="dCalib">—</span></div>
+        <div class="debug-row"><span class="debug-label">flatness</span><span class="debug-value" id="dFlatness">—</span></div>
     </div>
 
-    <div class="control-group">
-      <div class="btn-row">
-        <button id="colorModeBtn" class="btn btn-text"><i class="fa-solid fa-palette"></i> color</button>
-        <button id="exportBtn" class="btn btn-text"><i class="fa-regular fa-floppy-disk"></i> save</button>
-        <select id="presetSelect">
-          <option value="default">custom</option>
-          <option value="clouds">clouds</option>
-          <option value="terrain">terrain</option>
-          <option value="marble">marble</option>
-        </select>
-      </div>
-      <div class="badge-note">
-        <i class="fa-regular fa-keyboard"></i>  ▲/▼ scale &nbsp;|&nbsp; +/- zoom &nbsp;|&nbsp; R seed &nbsp;|&nbsp; space anim
-      </div>
-    </div>
-  </div>
-</div>
+    <script>
+        (function() {
+            'use strict';
 
-<script>
-  (function(){
-    let canvas = document.getElementById('noiseCanvas');
-    let ctx = canvas.getContext('2d');
+            // ============================================================
+            //  DOM refs
+            // ============================================================
+            const $ = (id) => document.getElementById(id);
+            const DOM = {
+                welcome: $('welcomeScreen'),
+                detection: $('detectionScreen'),
+                enableBtn: $('enableMicBtn'),
+                welcomeError: $('welcomeError'),
+                statusBadge: $('statusBadge'),
+                micRing: $('micRing'),
+                micIcon: $('micIcon'),
+                waveformCanvas: $('waveformCanvas'),
+                meterFill: $('meterFill'),
+                levelPercent: $('levelPercent'),
+                confDot: $('confDot'),
+                confValue: $('confValue'),
+                stateLabel: $('stateLabel'),
+                detectedOverlay: $('detectedOverlay'),
+                resetBtn: $('resetBtn'),
+                debugToggle: $('debugToggle'),
+                debugPanel: $('debugPanel'),
+                dRms: $('dRms'),
+                dPeak: $('dPeak'),
+                dBaseline: $('dBaseline'),
+                dThreshold: $('dThreshold'),
+                dConfidence: $('dConfidence'),
+                dTimer: $('dTimer'),
+                dStatus: $('dStatus'),
+                dCalib: $('dCalib'),
+                dFlatness: $('dFlatness'),
+            };
 
-    let state = {
-      scale: 0.012,
-      resolutionStep: 2,
-      seed: 1337,
-      octaves: 4,
-      persistence: 0.55,
-      lacunarity: 2.0,
-      animationActive: false,
-      animSpeed: 0.8,
-      time: 0,
-      colorMode: false,
-      width: 800,
-      height: 600
-    };
+            // ============================================================
+            //  State
+            // ============================================================
+            const STATE = {
+                IDLE: 'idle',
+                CALIBRATING: 'calibrating',
+                LISTENING: 'listening',
+                DETECTED: 'detected',
+                ERROR: 'error',
+            };
 
-    let noiseInstance = null;
-    let animationFrameId = null;
-    let renderPending = false;
-    let currentTimeOffset = 0;
+            let state = STATE.IDLE;
+            let audioContext = null;
+            let analyser = null;
+            let dataArray = null;
+            let timeData = null;
+            let stream = null;
+            let animationId = null;
+            let isListening = false;
 
-    class SimplexNoise3D {
-      constructor(seed = 1337) {
-        this.grad3 = [
-          [1,1,0], [-1,1,0], [1,-1,0], [-1,-1,0],
-          [1,0,1], [-1,0,1], [1,0,-1], [-1,0,-1],
-          [0,1,1], [0,-1,1], [0,1,-1], [0,-1,-1]
-        ];
-        this.p = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
-          190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,
-          171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,
-          245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,
-          164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,
-          58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,
-          98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,
-          145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,
-          222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
-        this.perm = new Array(512);
-        this.gradP = new Array(512);
-        this.seed(seed);
-      }
+            // calibration
+            let calibrationSamples = [];
+            let calibrationCount = 0;
+            const CALIBRATION_DURATION = 2800; // ms
+            let calibrationStart = 0;
 
-      seed(seed) {
-        let random = this.xorshift(seed);
-        for(let i=0;i<256;i++) {
-          let j = Math.floor(random() * (256 - i)) + i;
-          [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
-        }
-        for(let i=0;i<512;i++) {
-          this.perm[i] = this.p[i & 255];
-          this.gradP[i] = this.grad3[this.perm[i] % this.grad3.length];
-        }
-      }
+            // detection
+            let baseline = 0.002; // initial placeholder
+            let thresholdMultiplier = 1.8;
+            let detectionTimer = 0;
+            let detectionActive = false;
+            let blowStartTime = 0;
+            let blowMaxRms = 0;
+            let blowSamples = [];
+            const MIN_BLOW_MS = 280;
+            const MAX_BLOW_MS = 1200;
+            const CONFIDENCE_HISTORY = 20;
+            let confidenceHistory = [];
+            let currentConfidence = 0;
+            let isDetected = false;
+            let suppressUntil = 0; // cooldown after detection
 
-      xorshift(seed) {
-        let s = seed || 1337;
-        return function() {
-          s ^= s << 13;
-          s ^= s >> 17;
-          s ^= s << 5;
-          return (s >>> 0) / 4294967296;
-        };
-      }
+            // spectral
+            let spectralFlatness = 0.5;
 
-      dot(g, x, y, z) {
-        return g[0]*x + g[1]*y + g[2]*z;
-      }
+            // ============================================================
+            //  Audio Engine
+            // ============================================================
 
-      noise3D(x, y, z) {
-        let n0=0, n1=0, n2=0, n3=0;
-        let s = (x+y+z)/3.0;
-        let i = Math.floor(x+s);
-        let j = Math.floor(y+s);
-        let k = Math.floor(z+s);
-        let t = (i+j+k)/6.0;
-        let X0 = i-t;
-        let Y0 = j-t;
-        let Z0 = k-t;
-        let x0 = x-X0;
-        let y0 = y-Y0;
-        let z0 = z-Z0;
-        let i1, j1, k1;
-        let i2, j2, k2;
-        if(x0 >= y0) {
-          if(y0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; }
-          else if(x0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; }
-          else { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; }
-        } else {
-          if(y0 < z0) { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; }
-          else if(x0 < z0) { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; }
-          else { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; }
-        }
-        let x1 = x0 - i1 + 1.0/6.0;
-        let y1 = y0 - j1 + 1.0/6.0;
-        let z1 = z0 - k1 + 1.0/6.0;
-        let x2 = x0 - i2 + 2.0/6.0;
-        let y2 = y0 - j2 + 2.0/6.0;
-        let z2 = z0 - k2 + 2.0/6.0;
-        let x3 = x0 - 1.0;
-        let y3 = y0 - 1.0;
-        let z3 = z0 - 1.0;
-        let ii = i & 255;
-        let jj = j & 255;
-        let kk = k & 255;
-        let gi0 = this.perm[ii + this.perm[jj + this.perm[kk]]] % 12;
-        let gi1 = this.perm[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] % 12;
-        let gi2 = this.perm[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] % 12;
-        let gi3 = this.perm[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] % 12;
-        let t0 = 0.6 - x0*x0 - y0*y0 - z0*z0;
-        if(t0<0) n0=0; else { t0 *= t0; n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0, z0); }
-        let t1 = 0.6 - x1*x1 - y1*y1 - z1*z1;
-        if(t1<0) n1=0; else { t1 *= t1; n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1, z1); }
-        let t2 = 0.6 - x2*x2 - y2*y2 - z2*z2;
-        if(t2<0) n2=0; else { t2 *= t2; n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2, z2); }
-        let t3 = 0.6 - x3*x3 - y3*y3 - z3*z3;
-        if(t3<0) n3=0; else { t3 *= t3; n3 = t3 * t3 * this.dot(this.grad3[gi3], x3, y3, z3); }
-        return 32.0 * (n0 + n1 + n2 + n3);
-      }
-    }
-
-    function initNoise() {
-      noiseInstance = new SimplexNoise3D(state.seed);
-    }
-
-    function fbm3D(x, y, t, octaves, persistence, lacunarity) {
-      let value = 0;
-      let amplitude = 0.5;
-      let frequency = 1.0;
-      let maxAmp = 0;
-      for(let i=0; i<octaves; i++) {
-        value += amplitude * noiseInstance.noise3D(x * frequency, y * frequency, t * frequency);
-        maxAmp += amplitude;
-        amplitude *= persistence;
-        frequency *= lacunarity;
-      }
-      return value / maxAmp;
-    }
-
-    function updateCanvasSize() {
-      const container = canvas.parentElement;
-      const containerWidth = container.clientWidth;
-      const targetHeight = Math.min(560, Math.max(300, containerWidth * 0.65));
-      canvas.width = containerWidth;
-      canvas.height = targetHeight;
-      state.width = canvas.width;
-      state.height = canvas.height;
-      ctx = canvas.getContext('2d');
-      requestRender();
-    }
-
-    function hslToRgb(h, s, l) {
-      let r, g, b;
-      if (s === 0) r = g = b = l;
-      else {
-        let hue2rgb = (p, q, t) => {
-          if (t < 0) t += 1;
-          if (t > 1) t -= 1;
-          if (t < 1/6) return p + (q - p) * 6 * t;
-          if (t < 1/2) return q;
-          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-          return p;
-        };
-        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        let p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
-      }
-      return [Math.floor(r * 255), Math.floor(g * 255), Math.floor(b * 255)];
-    }
-
-    function renderFull() {
-      if(!noiseInstance) initNoise();
-      const w = state.width;
-      const h = state.height;
-      const step = Math.max(1, Math.min(10, state.resolutionStep));
-      const imgData = ctx.createImageData(w, h);
-      const data = imgData.data;
-      const scaleVal = state.scale;
-      const oct = state.octaves;
-      const pers = state.persistence;
-      const lacu = state.lacunarity;
-      const timeVal = state.animationActive ? currentTimeOffset : 0;
-      const colorFlag = state.colorMode;
-
-      for(let y = 0; y < h; y += step) {
-        for(let x = 0; x < w; x += step) {
-          let nx = x * scaleVal;
-          let ny = y * scaleVal;
-          let noiseVal = fbm3D(nx, ny, timeVal, oct, pers, lacu);
-          let norm = (noiseVal + 1.0) / 2.0;
-          norm = Math.min(0.999, Math.max(0.0, norm));
-          let r, g, b;
-          if(colorFlag) {
-            let hue = norm * 280;
-            let rgb = hslToRgb(hue/360, 0.75, 0.55 + norm * 0.3);
-            r = rgb[0]; g = rgb[1]; b = rgb[2];
-          } else {
-            let valByte = Math.floor(norm * 255);
-            r = valByte; g = valByte; b = valByte;
-          }
-          let endX = Math.min(x + step, w);
-          let endY = Math.min(y + step, h);
-          for(let py = y; py < endY; py++) {
-            let rowStart = py * w * 4;
-            for(let px = x; px < endX; px++) {
-              let idx = rowStart + px * 4;
-              data[idx] = r;
-              data[idx+1] = g;
-              data[idx+2] = b;
-              data[idx+3] = 255;
+            function initAudioContext() {
+                if (!window.AudioContext && !window.webkitAudioContext) {
+                    throw new Error('Web Audio API not supported');
+                }
+                const Ctor = window.AudioContext || window.webkitAudioContext;
+                const ctx = new Ctor();
+                if (ctx.state === 'suspended') {
+                    // resume on user gesture
+                }
+                return ctx;
             }
-          }
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-    }
 
-    let resizeObserver = new ResizeObserver(() => updateCanvasSize());
-    resizeObserver.observe(canvas.parentElement);
+            async function setupMicrophone() {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                        }
+                    });
+                    return stream;
+                } catch (err) {
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        throw new Error('permission-denied');
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        throw new Error('no-microphone');
+                    } else {
+                        throw new Error('microphone-error');
+                    }
+                }
+            }
 
-    function requestRender() {
-      if(renderPending) return;
-      renderPending = true;
-      requestAnimationFrame(() => {
-        renderFull();
-        renderPending = false;
-      });
-    }
+            function setupAudioPipeline(stream) {
+                if (!audioContext || audioContext.state === 'closed') {
+                    audioContext = initAudioContext();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
 
-    function updateStateAndRender(newState) {
-      let changed = false;
-      for(let key in newState) {
-        if(state[key] !== newState[key]) {
-          state[key] = newState[key];
-          changed = true;
-        }
-      }
-      if(changed) {
-        if('seed' in newState) initNoise();
-        requestRender();
-        updateUIelements();
-      }
-    }
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.8;
 
-    function randomSeed() {
-      let newSeed = Math.floor(Math.random() * 90000) + 1;
-      updateStateAndRender({ seed: newSeed });
-    }
+                source.connect(analyser);
 
-    function updateUIelements() {
-      document.getElementById('scaleSlider').value = state.scale;
-      document.getElementById('scaleVal').innerText = state.scale.toFixed(4);
-      document.getElementById('resolutionSlider').value = state.resolutionStep;
-      document.getElementById('resVal').innerText = state.resolutionStep;
-      document.getElementById('seedInput').value = state.seed;
-      document.getElementById('octavesSlider').value = state.octaves;
-      document.getElementById('octVal').innerText = state.octaves;
-      document.getElementById('persistenceSlider').value = state.persistence;
-      document.getElementById('perVal').innerText = state.persistence.toFixed(2);
-      document.getElementById('lacunaritySlider').value = state.lacunarity;
-      document.getElementById('lacVal').innerText = state.lacunarity.toFixed(2);
-      document.getElementById('animSpeedSlider').value = state.animSpeed;
-      document.getElementById('speedVal').innerText = state.animSpeed.toFixed(2);
-      let animBtn = document.getElementById('toggleAnimBtn');
-      if(state.animationActive) {
-        animBtn.innerHTML = '<i class="fa-regular fa-circle-pause"></i> stop';
-      } else {
-        animBtn.innerHTML = '<i class="fa-regular fa-circle-play"></i> start';
-      }
-    }
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                timeData = new Uint8Array(analyser.fftSize);
 
-    function animateLoop() {
-      if(state.animationActive) {
-        currentTimeOffset += state.animSpeed * 0.012;
-        requestRender();
-      }
-      animationFrameId = requestAnimationFrame(animateLoop);
-    }
+                return { analyser, bufferLength };
+            }
 
-    function toggleAnimation() {
-      updateStateAndRender({ animationActive: !state.animationActive });
-      if(!state.animationActive) {
-        currentTimeOffset = 0;
-        requestRender();
-      }
-    }
+            // ============================================================
+            //  Detection Logic
+            // ============================================================
 
-    function setPreset(type) {
-      if(type === 'clouds') updateStateAndRender({ scale:0.007, octaves:3, persistence:0.4, lacunarity:2.1, resolutionStep:2 });
-      else if(type === 'terrain') updateStateAndRender({ scale:0.018, octaves:5, persistence:0.65, lacunarity:2.3, resolutionStep:2 });
-      else if(type === 'marble') updateStateAndRender({ scale:0.025, octaves:4, persistence:0.5, lacunarity:2.0, resolutionStep:1 });
-      else if(type === 'default') updateStateAndRender({ scale:0.012, octaves:4, persistence:0.55, lacunarity:2.0, resolutionStep:2 });
-    }
+            function computeRms(timeData) {
+                let sum = 0;
+                for (let i = 0; i < timeData.length; i++) {
+                    const val = (timeData[i] - 128) / 128;
+                    sum += val * val;
+                }
+                return Math.sqrt(sum / timeData.length);
+            }
 
-    function exportImage() {
-      const link = document.createElement('a');
-      link.download = 'perlin_noise.png';
-      link.href = canvas.toDataURL();
-      link.click();
-    }
+            function computePeak(timeData) {
+                let max = 0;
+                for (let i = 0; i < timeData.length; i++) {
+                    const val = Math.abs((timeData[i] - 128) / 128);
+                    if (val > max) max = val;
+                }
+                return max;
+            }
 
-    function handleKeyboard(e) {
-      const targetTag = e.target.tagName;
-      if(targetTag === 'INPUT' || targetTag === 'SELECT' || targetTag === 'BUTTON') return;
-      switch(e.key) {
-        case 'ArrowUp': updateStateAndRender({ scale: Math.min(0.045, state.scale + 0.0015) }); break;
-        case 'ArrowDown': updateStateAndRender({ scale: Math.max(0.002, state.scale - 0.0015) }); break;
-        case '+': case '=': updateStateAndRender({ scale: Math.min(0.045, state.scale * 1.12) }); break;
-        case '-': updateStateAndRender({ scale: Math.max(0.002, state.scale / 1.12) }); break;
-        case 'r': case 'R': randomSeed(); break;
-        case ' ': e.preventDefault(); toggleAnimation(); break;
-        default: break;
-      }
-    }
+            function computeSpectralFlatness(dataArray) {
+                // Approximate spectral flatness using variance of log magnitudes.
+                // Simpler: ratio of geometric mean to arithmetic mean.
+                // We use a normalized variance across frequency bins as a proxy.
+                let sum = 0;
+                let sumLog = 0;
+                let count = 0;
+                const eps = 1e-10;
+                for (let i = 1; i < dataArray.length; i++) {
+                    const val = dataArray[i] / 255 + eps;
+                    sum += val;
+                    sumLog += Math.log(val);
+                    count++;
+                }
+                if (count === 0 || sum === 0) return 0.5;
+                const arith = sum / count;
+                const geom = Math.exp(sumLog / count);
+                const ratio = geom / arith;
+                // clamp and map to 0-1 (higher = flatter)
+                return Math.min(1, Math.max(0, ratio * 1.2));
+            }
 
-    function attachEvents() {
-      document.getElementById('scaleSlider').addEventListener('input', (e) => updateStateAndRender({ scale: parseFloat(e.target.value) }));
-      document.getElementById('resolutionSlider').addEventListener('input', (e) => updateStateAndRender({ resolutionStep: parseInt(e.target.value) }));
-      document.getElementById('seedInput').addEventListener('change', (e) => updateStateAndRender({ seed: parseInt(e.target.value) || 1337 }));
-      document.getElementById('randomSeedBtn').addEventListener('click', randomSeed);
-      document.getElementById('octavesSlider').addEventListener('input', (e) => updateStateAndRender({ octaves: parseInt(e.target.value) }));
-      document.getElementById('persistenceSlider').addEventListener('input', (e) => updateStateAndRender({ persistence: parseFloat(e.target.value) }));
-      document.getElementById('lacunaritySlider').addEventListener('input', (e) => updateStateAndRender({ lacunarity: parseFloat(e.target.value) }));
-      document.getElementById('animSpeedSlider').addEventListener('input', (e) => updateStateAndRender({ animSpeed: parseFloat(e.target.value) }));
-      document.getElementById('toggleAnimBtn').addEventListener('click', toggleAnimation);
-      document.getElementById('colorModeBtn').addEventListener('click', () => updateStateAndRender({ colorMode: !state.colorMode }));
-      document.getElementById('exportBtn').addEventListener('click', exportImage);
-      document.getElementById('presetSelect').addEventListener('change', (e) => setPreset(e.target.value));
-      window.addEventListener('keydown', handleKeyboard);
-      window.addEventListener('resize', () => updateCanvasSize());
-    }
+            function updateDetection(rms, peak, flatness) {
+                const now = performance.now();
 
-    function start() {
-      initNoise();
-      attachEvents();
-      updateCanvasSize();
-      currentTimeOffset = 0;
-      animateLoop();
-    }
-    start();
-  })();
-</script>
+                // cooldown
+                if (now < suppressUntil) {
+                    return;
+                }
+
+                // if detected, ignore further processing
+                if (isDetected) {
+                    return;
+                }
+
+                // threshold = baseline * multiplier
+                const threshold = baseline * thresholdMultiplier;
+
+                // ---- state machine ----
+                if (state === STATE.CALIBRATING) {
+                    // collect samples for calibration
+                    calibrationSamples.push(rms);
+                    calibrationCount++;
+                    if (now - calibrationStart > CALIBRATION_DURATION) {
+                        finishCalibration();
+                    }
+                    return;
+                }
+
+                if (state === STATE.LISTENING || state === STATE.IDLE) {
+                    // transition to listening if not already
+                    if (state === STATE.IDLE) {
+                        setState(STATE.LISTENING);
+                    }
+
+                    // update spectral flatness
+                    spectralFlatness = flatness;
+
+                    // check if signal exceeds threshold
+                    if (rms > threshold && rms > 0.005) {
+                        if (!detectionActive) {
+                            // start a blow candidate
+                            detectionActive = true;
+                            blowStartTime = now;
+                            blowMaxRms = rms;
+                            blowSamples = [rms];
+                            detectionTimer = 0;
+                        } else {
+                            // continue tracking
+                            const elapsed = now - blowStartTime;
+                            detectionTimer = elapsed;
+                            blowSamples.push(rms);
+                            if (rms > blowMaxRms) blowMaxRms = rms;
+
+                            // check if we have a valid blow
+                            if (elapsed >= MIN_BLOW_MS && elapsed <= MAX_BLOW_MS) {
+                                // require sustained energy and reasonable flatness
+                                const avgRms = blowSamples.reduce((a, b) => a + b, 0) / blowSamples.length;
+                                const sustained = avgRms > threshold * 0.85;
+                                const flatEnough = flatness > 0.35; // broadband noise
+
+                                if (sustained && flatEnough) {
+                                    // compute confidence
+                                    const ratio = avgRms / baseline;
+                                    const confBase = Math.min(1, (ratio - 1) / 3);
+                                    const flatBonus = Math.min(0.3, flatness * 0.5);
+                                    const durationFactor = Math.min(1, elapsed / 600);
+                                    let conf = (confBase * 0.6 + flatBonus * 0.25 + durationFactor * 0.15);
+                                    conf = Math.min(1, Math.max(0, conf));
+
+                                    // confidence history
+                                    confidenceHistory.push(conf);
+                                    if (confidenceHistory.length > CONFIDENCE_HISTORY) {
+                                        confidenceHistory.shift();
+                                    }
+                                    const avgConf = confidenceHistory.reduce((a, b) => a + b, 0) / confidenceHistory.length;
+                                    currentConfidence = avgConf;
+
+                                    // threshold for detection
+                                    if (avgConf > 0.58 && elapsed > 300) {
+                                        // BLOW DETECTED!
+                                        triggerBlowDetection(avgRms, conf);
+                                        return;
+                                    }
+                                }
+                            }
+
+                            // if blow is too long, reset
+                            if (elapsed > MAX_BLOW_MS) {
+                                detectionActive = false;
+                                detectionTimer = 0;
+                                blowSamples = [];
+                            }
+                        }
+                    } else {
+                        // signal dropped below threshold
+                        if (detectionActive) {
+                            const elapsed = now - blowStartTime;
+                            if (elapsed < MIN_BLOW_MS) {
+                                // too short, ignore
+                                detectionActive = false;
+                                detectionTimer = 0;
+                                blowSamples = [];
+                            } else if (elapsed >= MIN_BLOW_MS && elapsed <= MAX_BLOW_MS) {
+                                // check if it was a valid blow (trailing edge)
+                                const avgRms = blowSamples.reduce((a, b) => a + b, 0) / blowSamples.length;
+                                const sustained = avgRms > threshold * 0.7;
+                                const flatEnough = flatness > 0.35;
+                                if (sustained && flatEnough && avgRms > 0.008) {
+                                    const ratio = avgRms / baseline;
+                                    const confBase = Math.min(1, (ratio - 1) / 3);
+                                    const flatBonus = Math.min(0.3, flatness * 0.5);
+                                    const durationFactor = Math.min(1, elapsed / 600);
+                                    let conf = (confBase * 0.6 + flatBonus * 0.25 + durationFactor * 0.15);
+                                    conf = Math.min(1, Math.max(0, conf));
+                                    confidenceHistory.push(conf);
+                                    if (confidenceHistory.length > CONFIDENCE_HISTORY) {
+                                        confidenceHistory.shift();
+                                    }
+                                    const avgConf = confidenceHistory.reduce((a, b) => a + b, 0) / confidenceHistory.length;
+                                    currentConfidence = avgConf;
+                                    if (avgConf > 0.55 && elapsed > 280) {
+                                        triggerBlowDetection(avgRms, conf);
+                                        return;
+                                    }
+                                }
+                                detectionActive = false;
+                                detectionTimer = 0;
+                                blowSamples = [];
+                            } else {
+                                detectionActive = false;
+                                detectionTimer = 0;
+                                blowSamples = [];
+                            }
+                        }
+                    }
+
+                    // update confidence decay when not blowing
+                    if (!detectionActive) {
+                        currentConfidence = Math.max(0, currentConfidence * 0.97);
+                        if (confidenceHistory.length > 0) {
+                            confidenceHistory.push(currentConfidence);
+                            if (confidenceHistory.length > CONFIDENCE_HISTORY) {
+                                confidenceHistory.shift();
+                            }
+                        }
+                    }
+                }
+            }
+
+            function finishCalibration() {
+                if (calibrationSamples.length < 10) {
+                    // fallback
+                    baseline = 0.004;
+                } else {
+                    // use median + 1.5 * IQR for robustness
+                    const sorted = [...calibrationSamples].sort((a, b) => a - b);
+                    const median = sorted[Math.floor(sorted.length / 2)];
+                    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+                    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+                    const iqr = q3 - q1;
+                    // baseline = median + 1.5 * iqr, but clamp
+                    let base = median + 1.5 * iqr;
+                    // ensure minimum baseline
+                    base = Math.max(base, 0.002);
+                    // also ensure it's not too high
+                    base = Math.min(base, 0.025);
+                    baseline = base;
+                }
+                calibrationSamples = [];
+                calibrationCount = 0;
+                setState(STATE.LISTENING);
+                updateDebugPanel();
+            }
+
+            function triggerBlowDetection(avgRms, conf) {
+                if (isDetected) return;
+                isDetected = true;
+                detectionActive = false;
+                setState(STATE.DETECTED);
+                currentConfidence = conf;
+                // show overlay
+                DOM.detectedOverlay.classList.add('show');
+                // update UI
+                DOM.statusBadge.textContent = 'blow detected!';
+                DOM.statusBadge.className = 'status-badge detected';
+                DOM.micIcon.className = 'fa-solid fa-microphone mic-icon detected';
+                DOM.micRing.className = 'mic-ring detected';
+                DOM.meterFill.className = 'meter-fill detected';
+                DOM.confDot.className = 'conf-dot detected';
+                DOM.confValue.textContent = Math.round(conf * 100) + '%';
+                DOM.stateLabel.textContent = '🎉 detected';
+                // play subtle haptic if available
+                if (navigator.vibrate) navigator.vibrate(30);
+                // cooldown
+                suppressUntil = performance.now() + 400;
+                // call future hook
+                if (typeof onBlowDetected === 'function') {
+                    onBlowDetected();
+                }
+                updateDebugPanel();
+            }
+
+            // ============================================================
+            //  UI State Management
+            // ============================================================
+
+            function setState(newState) {
+                state = newState;
+                const badge = DOM.statusBadge;
+                const icon = DOM.micIcon;
+                const ring = DOM.micRing;
+                const meter = DOM.meterFill;
+
+                // reset classes
+                badge.className = 'status-badge';
+                icon.className = 'fa-solid fa-microphone mic-icon';
+                ring.className = 'mic-ring';
+                meter.className = 'meter-fill';
+
+                switch (newState) {
+                    case STATE.IDLE:
+                        badge.textContent = 'waiting…';
+                        DOM.stateLabel.textContent = 'idle';
+                        DOM.confDot.className = 'conf-dot';
+                        break;
+                    case STATE.CALIBRATING:
+                        badge.textContent = 'calibrating…';
+                        badge.classList.add('calibrating');
+                        ring.classList.add('pulse');
+                        meter.classList.add('calibrating');
+                        DOM.stateLabel.textContent = 'calibrating';
+                        DOM.confDot.className = 'conf-dot';
+                        break;
+                    case STATE.LISTENING:
+                        badge.textContent = 'listening…';
+                        badge.classList.add('listening');
+                        ring.classList.add('active');
+                        icon.classList.add('active');
+                        DOM.stateLabel.textContent = 'listening';
+                        DOM.confDot.className = 'conf-dot active';
+                        break;
+                    case STATE.DETECTED:
+                        // handled separately
+                        break;
+                    case STATE.ERROR:
+                        badge.textContent = 'error';
+                        badge.classList.add('error');
+                        icon.classList.add('error');
+                        DOM.stateLabel.textContent = 'error';
+                        DOM.confDot.className = 'conf-dot';
+                        break;
+                }
+                updateDebugPanel();
+            }
+
+            function updateUI(rms, peak, levelPercent) {
+                if (isDetected) return;
+                // meter
+                const pct = Math.min(100, Math.round(levelPercent * 100));
+                DOM.meterFill.style.width = pct + '%';
+                DOM.levelPercent.textContent = pct + '%';
+
+                // confidence display
+                const confPct = Math.min(100, Math.round(currentConfidence * 100));
+                DOM.confValue.textContent = confPct + '%';
+                if (currentConfidence > 0.4) {
+                    DOM.confDot.className = 'conf-dot active';
+                } else {
+                    DOM.confDot.className = 'conf-dot';
+                }
+
+                // state label
+                if (state === STATE.LISTENING && detectionActive) {
+                    const ms = Math.round(detectionTimer);
+                    DOM.stateLabel.textContent = 'blowing… ' + ms + 'ms';
+                } else if (state === STATE.LISTENING) {
+                    DOM.stateLabel.textContent = 'listening';
+                } else if (state === STATE.CALIBRATING) {
+                    DOM.stateLabel.textContent = 'calibrating…';
+                }
+            }
+
+            function drawWaveform(timeData) {
+                const canvas = DOM.waveformCanvas;
+                const rect = canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                const w = rect.width || 300;
+                const h = rect.height || 48;
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+
+                ctx.clearRect(0, 0, w, h);
+
+                const len = timeData.length;
+                const step = Math.max(1, Math.floor(len / w));
+                const mid = h / 2;
+                ctx.strokeStyle = 'rgba(229,229,229,0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                let started = false;
+                for (let i = 0; i < w; i++) {
+                    const idx = Math.min(len - 1, Math.floor(i * step));
+                    const val = (timeData[idx] - 128) / 128;
+                    const y = mid + val * (h * 0.42);
+                    if (!started) {
+                        ctx.moveTo(i, y);
+                        started = true;
+                    } else {
+                        ctx.lineTo(i, y);
+                    }
+                }
+                ctx.stroke();
+
+                // subtle fill
+                ctx.fillStyle = 'rgba(229,229,229,0.03)';
+                ctx.beginPath();
+                for (let i = 0; i < w; i++) {
+                    const idx = Math.min(len - 1, Math.floor(i * step));
+                    const val = (timeData[idx] - 128) / 128;
+                    const y = mid + val * (h * 0.42);
+                    if (i === 0) ctx.moveTo(i, mid);
+                    ctx.lineTo(i, y);
+                }
+                ctx.lineTo(w, mid);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // ============================================================
+            //  Main Loop
+            // ============================================================
+
+            function loop() {
+                if (!analyser || !isListening) {
+                    animationId = requestAnimationFrame(loop);
+                    return;
+                }
+
+                // get data
+                analyser.getByteTimeDomainData(timeData);
+                analyser.getByteFrequencyData(dataArray);
+
+                const rms = computeRms(timeData);
+                const peak = computePeak(timeData);
+                const flatness = computeSpectralFlatness(dataArray);
+
+                // level percent (0-1, scaled)
+                const levelPercent = Math.min(1, rms / 0.03);
+
+                // update detection
+                updateDetection(rms, peak, flatness);
+
+                // update UI
+                updateUI(rms, peak, levelPercent);
+                drawWaveform(timeData);
+
+                // debug
+                updateDebugPanel(rms, peak, flatness);
+
+                animationId = requestAnimationFrame(loop);
+            }
+
+            // ============================================================
+            //  Debug Panel
+            // ============================================================
+
+            let debugUpdateCounter = 0;
+
+            function updateDebugPanel(rms, peak, flatness) {
+                debugUpdateCounter++;
+                if (debugUpdateCounter % 2 !== 0) return;
+                const threshold = baseline * thresholdMultiplier;
+                DOM.dRms.textContent = rms ? rms.toFixed(5) : '—';
+                DOM.dPeak.textContent = peak ? peak.toFixed(4) : '—';
+                DOM.dBaseline.textContent = baseline.toFixed(5);
+                DOM.dThreshold.textContent = threshold.toFixed(5);
+                DOM.dConfidence.textContent = Math.round(currentConfidence * 100) + '%';
+                DOM.dTimer.textContent = detectionActive ? Math.round(detectionTimer) + 'ms' : '—';
+                DOM.dStatus.textContent = state;
+                DOM.dCalib.textContent = calibrationCount > 0 ? calibrationCount + ' samples' : 'done';
+                DOM.dFlatness.textContent = flatness !== undefined ? flatness.toFixed(3) : '—';
+            }
+
+            // ============================================================
+            //  Start / Stop
+            // ============================================================
+
+            async function startDetection() {
+                try {
+                    // show detection screen
+                    DOM.welcome.style.display = 'none';
+                    DOM.detection.style.display = 'flex';
+
+                    // reset state
+                    isDetected = false;
+                    detectionActive = false;
+                    isListening = false;
+                    calibrationSamples = [];
+                    calibrationCount = 0;
+                    confidenceHistory = [];
+                    currentConfidence = 0;
+                    DOM.detectedOverlay.classList.remove('show');
+                    suppressUntil = 0;
+
+                    // get mic
+                    const stream = await setupMicrophone();
+                    setupAudioPipeline(stream);
+
+                    // start listening
+                    isListening = true;
+                    setState(STATE.CALIBRATING);
+                    calibrationStart = performance.now();
+
+                    // start loop
+                    if (animationId) cancelAnimationFrame(animationId);
+                    loop();
+
+                } catch (err) {
+                    let msg = 'microphone error';
+                    if (err.message === 'permission-denied') {
+                        msg = 'permission denied. please allow microphone access and try again.';
+                        DOM.welcomeError.innerHTML = msg + ' <span class="retry-link" id="retryPermBtn">retry</span>';
+                        document.getElementById('retryPermBtn')?.addEventListener('click', () => {
+                            DOM.welcomeError.textContent = '';
+                            startDetection();
+                        });
+                    } else if (err.message === 'no-microphone') {
+                        msg = 'no microphone found. please connect a mic and refresh.';
+                        DOM.welcomeError.textContent = msg;
+                    } else {
+                        msg = 'could not access microphone: ' + err.message;
+                        DOM.welcomeError.textContent = msg;
+                    }
+                    // revert to welcome with error
+                    DOM.welcome.style.display = 'flex';
+                    DOM.detection.style.display = 'none';
+                    setState(STATE.ERROR);
+                    DOM.welcomeError.style.display = 'block';
+                }
+            }
+
+            function stopDetection() {
+                isListening = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                if (stream) {
+                    stream.getTracks().forEach(t => t.stop());
+                    stream = null;
+                }
+                if (audioContext && audioContext.state !== 'closed') {
+                    audioContext.close().catch(() => {});
+                    audioContext = null;
+                }
+                analyser = null;
+                dataArray = null;
+                timeData = null;
+            }
+
+            function resetAfterDetection() {
+                if (!isDetected) return;
+                isDetected = false;
+                detectionActive = false;
+                confidenceHistory = [];
+                currentConfidence = 0;
+                DOM.detectedOverlay.classList.remove('show');
+                DOM.statusBadge.textContent = 'listening…';
+                DOM.statusBadge.className = 'status-badge listening';
+                DOM.micIcon.className = 'fa-solid fa-microphone mic-icon active';
+                DOM.micRing.className = 'mic-ring active';
+                DOM.meterFill.className = 'meter-fill';
+                DOM.confDot.className = 'conf-dot active';
+                DOM.confValue.textContent = '0%';
+                DOM.stateLabel.textContent = 'listening';
+                setState(STATE.LISTENING);
+                suppressUntil = performance.now() + 200;
+                updateDebugPanel();
+            }
+
+            // ============================================================
+            //  External hook (future extension)
+            // ============================================================
+
+            window.onBlowDetected = function() {
+                // placeholder — add birthday logic later
+                // e.g. extinguish candles, trigger confetti, play music
+                console.log('🎉 blow detected! (hook called)');
+            };
+
+            // ============================================================
+            //  Event Listeners
+            // ============================================================
+
+            // enable mic button
+            DOM.enableBtn.addEventListener('click', () => {
+                DOM.enableBtn.disabled = true;
+                DOM.enableBtn.textContent = 'connecting…';
+                startDetection().finally(() => {
+                    DOM.enableBtn.disabled = false;
+                    DOM.enableBtn.innerHTML =
+                        '<i class="fa-solid fa-microphone" style="margin-right:10px;"></i>Enable Microphone';
+                });
+            });
+
+            // reset button (after detection)
+            DOM.resetBtn.addEventListener('click', resetAfterDetection);
+
+            // debug toggle
+            DOM.debugToggle.addEventListener('click', () => {
+                const panel = DOM.debugPanel;
+                const toggle = DOM.debugToggle;
+                const isOpen = panel.classList.toggle('open');
+                toggle.classList.toggle('open', isOpen);
+            });
+
+            // also close debug on outside tap
+            document.addEventListener('click', (e) => {
+                const panel = DOM.debugPanel;
+                const toggle = DOM.debugToggle;
+                if (panel.classList.contains('open')) {
+                    if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+                        panel.classList.remove('open');
+                        toggle.classList.remove('open');
+                    }
+                }
+            });
+
+            // handle window resize for canvas
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (timeData) drawWaveform(timeData);
+                }, 150);
+            });
+
+            // ============================================================
+            //  Init
+            // ============================================================
+
+            // set initial state
+            setState(STATE.IDLE);
+            DOM.welcome.style.display = 'flex';
+            DOM.detection.style.display = 'none';
+            DOM.welcomeError.style.display = 'block';
+            DOM.welcomeError.textContent = '';
+
+            // pre-warm canvas
+            const canvas = DOM.waveformCanvas;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = (rect.width || 300) * (window.devicePixelRatio || 1);
+            canvas.height = (rect.height || 48) * (window.devicePixelRatio || 1);
+
+            console.log('🔊 blow detector ready · tap "Enable Microphone" to start');
+
+            // handle visibility change to prevent audio issues
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && isListening) {
+                    // keep running but be gentle
+                }
+            });
+
+        })();
+    </script>
+
 </body>
 </html>
