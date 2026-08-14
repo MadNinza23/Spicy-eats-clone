@@ -1,1495 +1,2008 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>blow · detector</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Live Analytics Visualizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
+    </script>
     <style>
         :root {
-            --bg-primary: #0e0e0e;
-            --bg-card: rgba(229, 229, 229, 0.04);
-            --text-primary: #e5e5e5;
-            --text-secondary: rgba(229, 229, 229, 0.65);
-            --text-muted: rgba(229, 229, 229, 0.35);
-            --accent-glow: #f5c542;
-            --accent-success: #6fcf97;
-            --border-subtle: rgba(229, 229, 229, 0.08);
-            --radius-lg: 32px;
-            --radius-md: 20px;
-            --radius-sm: 12px;
-            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --transition-smooth: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-            --shadow-glow: 0 0 60px rgba(245, 197, 66, 0.08);
-            --meter-height: 6px;
-            --max-width: 440px;
+            --bg: #f8f9fa;
+            --paper: #ffffff;
+            --text: #202122;
+            --text-secondary: #54595d;
+            --border: #a2a9b1;
+            --link: #0645ad;
+            --link-visited: #0b0080;
+            --sidebar-bg: #f8f9fa;
+            --toc-bg: #f8f9fa;
+            --heading-border: #ddd;
+            --accent: #3366cc;
+            --card-bg: #ffffff;
+            --card-border: #e0e0e0;
+            --code-bg: #f1f1f1;
+            --chart-bg: #fafafa;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --radius: 6px;
+            --topbar-bg: #ffffff;
+            --topbar-border: #c8ccd1;
+            --badge-bg: #eaf3ff;
+            --badge-text: #3366cc;
+            --badge-border: #c8d9f0;
+            --input-bg: #ffffff;
+            --input-border: #a2a9b1;
+            --btn-bg: #f8f9fa;
+            --btn-hover: #e8e8e8;
+            --insight-bg: #f0f7ff;
+            --insight-border: #3366cc;
+            --insight-text: #1a3a5c;
+            --axis-bg: #f1f1f1;
+            --sidebar-overlay-bg: rgba(0, 0, 0, 0.4);
+            --footer-text: #54595d;
+            --footer-border: #a2a9b1;
+            --table-header-bg: #f1f1f1;
+            --table-border: #ccc;
+            --canvas-invert: 0;
+            --toggle-icon: '\f185';
         }
 
-        *,
-        *::before,
-        *::after {
+        body.dark {
+            --bg: #1a1a2e;
+            --paper: #16213e;
+            --text: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border: #3a3a5c;
+            --link: #7eb8da;
+            --link-visited: #a0c4e8;
+            --sidebar-bg: #16213e;
+            --toc-bg: #1a1a2e;
+            --heading-border: #3a3a5c;
+            --accent: #7eb8da;
+            --card-bg: #1a1a2e;
+            --card-border: #3a3a5c;
+            --code-bg: #222244;
+            --chart-bg: #1e1e3a;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --radius: 6px;
+            --topbar-bg: #16213e;
+            --topbar-border: #3a3a5c;
+            --badge-bg: #222244;
+            --badge-text: #7eb8da;
+            --badge-border: #3a3a5c;
+            --input-bg: #1a1a2e;
+            --input-border: #3a3a5c;
+            --btn-bg: #222244;
+            --btn-hover: #2a2a4a;
+            --insight-bg: #1e2a3a;
+            --insight-border: #7eb8da;
+            --insight-text: #c0d8f0;
+            --axis-bg: #222244;
+            --sidebar-overlay-bg: rgba(0, 0, 0, 0.7);
+            --footer-text: #b0b0b0;
+            --footer-border: #3a3a5c;
+            --table-header-bg: #222244;
+            --table-border: #3a3a5c;
+            --canvas-invert: 0.08;
+            --toggle-icon: '\f186';
+        }
+
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html,
-        body {
-            height: 100%;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            overflow: hidden;
         }
 
         body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            min-height: 100dvh;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            font-size: 12px;
-            letter-spacing: 0.28em;
-            text-transform: lowercase;
-            opacity: 0.7;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-        nav .brand {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        nav .brand i {
-            font-size: 14px;
-            opacity: 0.7;
-        }
-        nav .brand span {
-            font-weight: 400;
-        }
-        nav .badge {
-            font-size: 10px;
-            letter-spacing: 0.15em;
-            padding: 4px 12px;
-            border-radius: 40px;
-            background: rgba(229, 229, 229, 0.06);
-            opacity: 0.6;
-        }
-
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 20px 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .container {
-            width: 100%;
-            max-width: var(--max-width);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-            transition: opacity var(--transition-smooth);
-        }
-
-        #welcomeScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            text-align: center;
-            padding: 20px 8px;
-            animation: fadeUp 0.6s ease both;
-        }
-        #welcomeScreen .icon-wrap {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(229, 229, 229, 0.04);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-            transition: background var(--transition-smooth);
-        }
-        #welcomeScreen h1 {
-            font-size: 22px;
-            font-weight: 300;
-            letter-spacing: 0.18em;
-            text-transform: lowercase;
-        }
-        #welcomeScreen p {
-            font-size: 14px;
-            color: var(--text-secondary);
-            letter-spacing: 0.04em;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.6;
-            max-width: 340px;
-            margin: 0 auto;
+            font-size: 15px;
+            transition: background 0.3s ease, color 0.3s ease;
         }
-        #welcomeScreen .btn-primary {
-            margin-top: 8px;
-            padding: 14px 44px;
-            border-radius: 60px;
-            border: none;
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            font-size: 14px;
-            font-weight: 500;
-            letter-spacing: 0.12em;
-            cursor: pointer;
-            transition: all var(--transition-smooth);
-            font-family: var(--font-sans);
-            touch-action: manipulation;
+
+        a {
+            color: var(--link);
+            text-decoration: none;
         }
-        #welcomeScreen .btn-primary:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 40px rgba(229, 229, 229, 0.06);
-        }
-        #welcomeScreen .btn-primary:active {
-            transform: scale(0.96);
-        }
-        #welcomeScreen .btn-primary:disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
-        .welcome-error {
-            font-size: 13px;
-            color: #e8a0a0;
-            letter-spacing: 0.06em;
-            margin-top: 6px;
-            min-height: 1.6em;
-        }
-        .welcome-error .retry-link {
-            color: var(--text-primary);
+        a:hover {
             text-decoration: underline;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s;
         }
-        .welcome-error .retry-link:hover {
-            opacity: 1;
+        a:visited {
+            color: var(--link-visited);
         }
 
-        #detectionScreen {
-            display: none;
-            flex-direction: column;
+        .top-bar {
+            background: var(--topbar-bg);
+            border-bottom: 1px solid var(--topbar-border);
+            padding: 8px 14px;
+            display: flex;
             align-items: center;
-            gap: 20px;
-            width: 100%;
-            animation: fadeUp 0.5s ease both;
+            gap: 10px;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: background 0.3s ease, border-color 0.3s ease;
+            min-height: 48px;
         }
-
-        .status-badge {
+        .top-bar .brand {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--text);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .top-bar .brand i {
+            font-size: 16px;
+            color: var(--accent);
+        }
+        .top-bar .url-input {
+            flex: 1;
+            min-width: 200px;
+            max-width: 420px;
+            padding: 7px 10px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
             font-size: 12px;
-            letter-spacing: 0.22em;
-            text-transform: uppercase;
-            padding: 6px 20px;
-            border-radius: 40px;
-            background: rgba(229, 229, 229, 0.05);
+            background: var(--input-bg);
+            color: var(--text);
+            font-family: inherit;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        .top-bar .url-input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -1px;
+        }
+        .top-bar .url-input::placeholder {
             color: var(--text-secondary);
-            transition: all var(--transition-smooth);
-            text-align: center;
-            backdrop-filter: blur(2px);
+            opacity: 0.7;
         }
-        .status-badge.listening {
-            color: #8fc9ff;
-            background: rgba(143, 201, 255, 0.08);
+        .top-bar button {
+            background: var(--btn-bg);
+            border: 1px solid var(--input-border);
+            padding: 7px 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            white-space: nowrap;
+            color: var(--text);
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .status-badge.calibrating {
-            color: #f5c542;
-            background: rgba(245, 197, 66, 0.08);
+        .top-bar button:hover {
+            background: var(--btn-hover);
         }
-        .status-badge.detected {
-            color: #6fcf97;
-            background: rgba(111, 207, 151, 0.12);
-            animation: pulseGlow 1.2s ease-in-out infinite;
+        .top-bar .badge {
+            font-size: 11px;
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 5px 11px;
+            border-radius: 14px;
+            white-space: nowrap;
+            border: 1px solid var(--badge-border);
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-        .status-badge.error {
-            color: #e8a0a0;
-            background: rgba(232, 160, 160, 0.08);
-        }
-
-        .mic-visual {
-            position: relative;
-            width: 120px;
-            height: 120px;
+        .top-bar .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--input-border);
+            padding: 7px 11px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 15px;
+            color: var(--text);
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: background 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .top-bar .theme-toggle:hover {
+            background: var(--btn-hover);
+        }
+        #fileInput {
+            display: none;
+        }
+
+        .layout {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            padding: 16px 10px 40px;
+            font-size: 13px;
+            position: sticky;
+            top: 52px;
+            height: calc(100vh - 52px);
+            overflow-y: auto;
+            z-index: 50;
+            transition: background 0.3s ease, border-color 0.3s ease, transform 0.25s ease;
+        }
+        .sidebar h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin: 16px 0 6px 4px;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .sidebar a {
+            display: block;
+            padding: 5px 8px;
+            color: var(--link);
+            border-radius: 3px;
+            font-size: 12px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar a:hover {
+            background: #eaf3ff;
+            text-decoration: none;
+        }
+        body.dark .sidebar a:hover {
+            background: #2a3a5c;
+        }
+        .sidebar a.active {
+            background: #eaf3ff;
+            font-weight: 600;
+        }
+        body.dark .sidebar a.active {
+            background: #2a3a5c;
+        }
+        .sidebar .separator {
+            border-top: 1px solid var(--border);
+            margin: 10px 4px;
+            transition: border-color 0.3s ease;
+        }
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px 8px;
+            color: var(--text);
+            flex-shrink: 0;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--sidebar-overlay-bg);
+            z-index: 49;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: 24px 28px 60px;
+            background: var(--paper);
+            border-left: none;
+            box-shadow: -1px 0 0 var(--card-border);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .main-content h1 {
+            font-family: 'Linux Libertine', 'Georgia', 'Times New Roman', serif;
+            font-size: 28px;
+            font-weight: 400;
+            border-bottom: 1px solid var(--heading-border);
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            color: var(--text);
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .main-content h2 {
+            font-family: 'Linux Libertine', 'Georgia', 'Times New Roman', serif;
+            font-size: 22px;
+            font-weight: 400;
+            border-bottom: 1px solid var(--heading-border);
+            padding-bottom: 4px;
+            margin-top: 36px;
+            margin-bottom: 12px;
+            color: var(--text);
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .main-content h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: var(--text);
+            transition: color 0.3s ease;
+        }
+        .main-content p {
+            margin: 8px 0 14px;
+            color: var(--text);
+            max-width: 780px;
+            transition: color 0.3s ease;
+        }
+        .main-content ul,
+        .main-content ol {
+            margin: 6px 0 14px 24px;
+            max-width: 700px;
+            color: var(--text);
+            transition: color 0.3s ease;
+        }
+        .main-content li {
             margin: 4px 0;
         }
-        .mic-visual .mic-ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1.5px solid rgba(229, 229, 229, 0.08);
-            transition: all var(--transition-smooth);
-        }
-        .mic-visual .mic-ring.pulse {
-            border-color: rgba(229, 229, 229, 0.15);
-            animation: ringPulse 1.8s ease-in-out infinite;
-        }
-        .mic-visual .mic-ring.active {
-            border-color: rgba(143, 201, 255, 0.25);
-            box-shadow: 0 0 50px rgba(143, 201, 255, 0.04);
-        }
-        .mic-visual .mic-ring.detected {
-            border-color: rgba(111, 207, 151, 0.35);
-            box-shadow: 0 0 70px rgba(111, 207, 151, 0.08);
-            animation: ringDetected 1s ease-in-out infinite;
-        }
-        .mic-visual .mic-icon {
-            font-size: 42px;
-            color: var(--text-secondary);
-            transition: all var(--transition-smooth);
-            z-index: 2;
-            opacity: 0.8;
-        }
-        .mic-visual .mic-icon.active {
-            color: #8fc9ff;
-            opacity: 1;
-            transform: scale(1.05);
-        }
-        .mic-visual .mic-icon.detected {
-            color: #6fcf97;
-            opacity: 1;
-            transform: scale(1.1);
-        }
-        .mic-visual .mic-icon.error {
-            color: #e8a0a0;
-            opacity: 0.7;
-        }
 
-        .waveform-wrap {
-            width: 100%;
-            height: 48px;
-            border-radius: var(--radius-sm);
-            background: rgba(229, 229, 229, 0.02);
-            overflow: hidden;
-            position: relative;
-            margin-top: -4px;
-        }
-        .waveform-wrap canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            opacity: 0.5;
-            transition: opacity var(--transition-smooth);
-        }
-        .waveform-wrap canvas.active {
-            opacity: 0.85;
-        }
-
-        .meter-wrap {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .meter-wrap .meter-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            letter-spacing: 0.12em;
-            color: var(--text-muted);
-            text-transform: lowercase;
-        }
-        .meter-wrap .meter-track {
-            width: 100%;
-            height: var(--meter-height);
-            border-radius: 40px;
-            background: rgba(229, 229, 229, 0.06);
-            overflow: hidden;
-            position: relative;
-        }
-        .meter-wrap .meter-fill {
-            height: 100%;
-            width: 0%;
-            border-radius: 40px;
-            background: linear-gradient(90deg, rgba(143, 201, 255, 0.2), rgba(143, 201, 255, 0.7));
-            transition: width 0.08s linear;
-        }
-        .meter-wrap .meter-fill.detected {
-            background: linear-gradient(90deg, rgba(111, 207, 151, 0.2), #6fcf97);
-        }
-        .meter-wrap .meter-fill.calibrating {
-            background: linear-gradient(90deg, rgba(245, 197, 66, 0.2), rgba(245, 197, 66, 0.6));
-        }
-
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            gap: 12px;
-            font-size: 12px;
-            letter-spacing: 0.06em;
-            color: var(--text-secondary);
-            padding: 0 2px;
-        }
-        .stats-row .conf-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .stats-row .conf-item .conf-value {
-            font-weight: 400;
-            color: var(--text-primary);
-            min-width: 44px;
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-        .stats-row .conf-item .conf-label {
-            opacity: 0.5;
-            font-size: 11px;
-            letter-spacing: 0.1em;
-        }
-        .stats-row .conf-item .conf-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--text-muted);
-            transition: background var(--transition-smooth);
-        }
-        .stats-row .conf-item .conf-dot.active {
-            background: #8fc9ff;
-            box-shadow: 0 0 12px rgba(143, 201, 255, 0.15);
-        }
-        .stats-row .conf-item .conf-dot.detected {
-            background: #6fcf97;
-            box-shadow: 0 0 16px rgba(111, 207, 151, 0.2);
-        }
-
-        .detected-overlay {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            padding: 16px 8px 6px;
-            animation: fadeUp 0.5s ease both;
-            width: 100%;
-        }
-        .detected-overlay.show {
-            display: flex;
-        }
-        .detected-overlay .big-icon {
-            font-size: 52px;
-            color: #6fcf97;
-            animation: bounceSoft 0.8s ease both;
-        }
-        .detected-overlay .big-text {
-            font-size: 20px;
-            font-weight: 300;
-            letter-spacing: 0.14em;
-            color: #6fcf97;
-        }
-        .detected-overlay .sub-text {
+        .toc {
+            background: var(--toc-bg);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
             font-size: 13px;
-            color: var(--text-secondary);
-            letter-spacing: 0.06em;
+            display: inline-block;
+            margin: 8px 0 20px;
+            border-radius: 3px;
+            min-width: 260px;
+            transition: background 0.3s ease, border-color 0.3s ease;
         }
-        .detected-overlay .btn-reset {
-            margin-top: 6px;
-            padding: 10px 32px;
-            border-radius: 60px;
-            border: 1px solid rgba(229, 229, 229, 0.1);
-            background: transparent;
-            color: var(--text-secondary);
+        .toc h2 {
             font-size: 13px;
-            letter-spacing: 0.12em;
-            cursor: pointer;
-            transition: all var(--transition-smooth);
-            font-family: var(--font-sans);
-            touch-action: manipulation;
-        }
-        .detected-overlay .btn-reset:hover {
-            background: rgba(229, 229, 229, 0.04);
-            color: var(--text-primary);
-        }
-        .detected-overlay .btn-reset:active {
-            transform: scale(0.96);
-        }
-
-        .debug-toggle {
-            position: fixed;
-            bottom: 18px;
-            right: 18px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            font-weight: 700;
             border: none;
-            background: rgba(229, 229, 229, 0.04);
-            color: var(--text-muted);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all var(--transition-smooth);
-            z-index: 50;
-            backdrop-filter: blur(4px);
-            touch-action: manipulation;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            margin: 0 0 6px;
+            padding: 0;
+            font-family: inherit;
+            color: var(--text);
         }
-        .debug-toggle:hover {
-            background: rgba(229, 229, 229, 0.08);
-            color: var(--text-secondary);
+        .toc ol {
+            margin: 0 0 0 18px;
+            padding: 0;
+            max-width: none;
         }
-        .debug-toggle.open {
-            background: rgba(229, 229, 229, 0.06);
-            color: var(--text-primary);
+        .toc li {
+            margin: 2px 0;
         }
 
-        .debug-panel {
-            position: fixed;
-            bottom: 70px;
-            right: 18px;
-            width: 280px;
-            max-width: calc(100vw - 36px);
-            max-height: 70vh;
-            overflow-y: auto;
-            background: rgba(14, 14, 14, 0.95);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(229, 229, 229, 0.06);
-            border-radius: var(--radius-md);
-            padding: 18px 20px;
-            font-size: 11px;
-            letter-spacing: 0.04em;
-            color: var(--text-secondary);
-            transform: translateY(12px) scale(0.97);
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s ease;
-            z-index: 49;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-            font-family: var(--font-sans);
-            line-height: 1.8;
+        .chart-section {
+            margin: 20px 0 32px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 18px 16px 14px;
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+            max-width: 820px;
+            transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
-        .debug-panel.open {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .debug-panel .debug-title {
-            font-size: 10px;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--text-muted);
+        .chart-section .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
             margin-bottom: 10px;
-            border-bottom: 1px solid rgba(229, 229, 229, 0.04);
-            padding-bottom: 6px;
         }
-        .debug-panel .debug-row {
+        .chart-section .chart-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            font-family: inherit;
+            transition: color 0.3s ease;
+        }
+        .chart-section .chart-header .hypothesis-tag {
+            font-size: 10px;
+            background: #fef6e7;
+            color: #7a5d00;
+            padding: 3px 8px;
+            border-radius: 10px;
+            border: 1px solid #e8d5a0;
+            white-space: nowrap;
+        }
+        body.dark .chart-section .chart-header .hypothesis-tag {
+            background: #3a3020;
+            color: #e0c860;
+            border-color: #5a4a30;
+        }
+        .chart-section canvas {
+            width: 100%;
+            max-height: 340px;
+            background: var(--chart-bg);
+            border-radius: 4px;
+            border: 1px solid var(--card-border);
+            transition: background 0.3s ease, border-color 0.3s ease;
+            filter: invert(var(--canvas-invert));
+        }
+        .chart-section .axis-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            transition: color 0.3s ease;
+        }
+        .chart-section .axis-info span {
+            background: var(--axis-bg);
+            padding: 3px 9px;
+            border-radius: 3px;
+            transition: background 0.3s ease;
+        }
+
+        .wiki-footer {
+            max-width: 820px;
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid var(--footer-border);
+            font-size: 11px;
+            color: var(--footer-text);
+            transition: color 0.3s ease, border-color 0.3s ease;
             display: flex;
             justify-content: space-between;
-            padding: 2px 0;
-            font-variant-numeric: tabular-nums;
-        }
-        .debug-panel .debug-row .debug-label {
-            opacity: 0.5;
-        }
-        .debug-panel .debug-row .debug-value {
-            color: var(--text-primary);
-            font-weight: 400;
-        }
-        .debug-panel .debug-row .debug-value.highlight {
-            color: #8fc9ff;
-        }
-        .debug-panel .debug-row .debug-value.detected {
-            color: #6fcf97;
-        }
-        .debug-panel .debug-divider {
-            border-top: 1px solid rgba(229, 229, 229, 0.04);
-            margin: 8px 0;
-        }
-        .debug-panel .test-status-line {
-            display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 8px;
-            padding: 4px 0;
-            font-size: 11px;
         }
-        .debug-panel .test-status-line .test-indicator {
-            padding: 2px 10px;
-            border-radius: 40px;
-            font-size: 10px;
-            letter-spacing: 0.06em;
-            font-weight: 500;
-            transition: all var(--transition-smooth);
-        }
-        .debug-panel .test-status-line .test-indicator.waiting {
-            color: var(--text-muted);
-            background: rgba(229, 229, 229, 0.04);
-        }
-        .debug-panel .test-status-line .test-indicator.triggered {
-            color: #6fcf97;
-            background: rgba(111, 207, 151, 0.12);
-        }
-        .debug-panel .test-status-line .test-trigger-count {
-            opacity: 0.5;
-            font-size: 10px;
-            margin-left: auto;
-        }
-        .debug-panel .test-status-line .test-reset-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 40px;
-            transition: all var(--transition-smooth);
-            font-size: 12px;
-            font-family: var(--font-sans);
-        }
-        .debug-panel .test-status-line .test-reset-btn:hover {
-            color: var(--text-secondary);
-            background: rgba(229, 229, 229, 0.04);
-        }
-        .debug-panel::-webkit-scrollbar {
-            width: 3px;
-        }
-        .debug-panel::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .debug-panel::-webkit-scrollbar-thumb {
-            background: rgba(229, 229, 229, 0.12);
-            border-radius: 40px;
+        .wiki-footer .credit {
+            font-weight: 600;
+            letter-spacing: 0.03em;
         }
 
-        @keyframes fadeUp {
-            0% {
-                opacity: 0;
-                transform: translateY(12px);
+        @media (max-width: 900px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 200;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25);
+                padding-top: 60px;
             }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
+            .sidebar.open {
+                transform: translateX(0);
             }
-        }
-        @keyframes pulseGlow {
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(111, 207, 151, 0);
+            .sidebar-overlay.open {
+                display: block;
             }
-            50% {
-                box-shadow: 0 0 30px rgba(111, 207, 151, 0.06);
+            .hamburger {
+                display: inline-flex;
             }
-        }
-        @keyframes ringPulse {
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 0.4;
+            .main-content {
+                padding: 16px 12px 40px;
             }
-            50% {
-                transform: scale(1.06);
-                opacity: 1;
+            .main-content h1 {
+                font-size: 22px;
             }
-        }
-        @keyframes ringDetected {
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 0.5;
-            }
-            50% {
-                transform: scale(1.12);
-                opacity: 1;
-            }
-        }
-        @keyframes bounceSoft {
-            0% {
-                transform: scale(0.6);
-                opacity: 0;
-            }
-            60% {
-                transform: scale(1.08);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 480px) {
-            nav {
-                padding: 12px 18px;
-                font-size: 11px;
-            }
-            main {
-                padding: 8px 14px 16px;
-            }
-            .container {
-                gap: 18px;
-            }
-            #welcomeScreen .icon-wrap {
-                width: 64px;
-                height: 64px;
-                font-size: 26px;
-            }
-            #welcomeScreen h1 {
-                font-size: 19px;
-            }
-            #welcomeScreen p {
-                font-size: 13px;
-            }
-            #welcomeScreen .btn-primary {
-                padding: 12px 34px;
-                font-size: 13px;
-            }
-            .mic-visual {
-                width: 96px;
-                height: 96px;
-            }
-            .mic-visual .mic-icon {
-                font-size: 34px;
-            }
-            .waveform-wrap {
-                height: 38px;
-            }
-            .status-badge {
-                font-size: 10px;
-                padding: 4px 16px;
-            }
-            .stats-row {
-                font-size: 11px;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 6px 16px;
-            }
-            .detected-overlay .big-icon {
-                font-size: 42px;
-            }
-            .detected-overlay .big-text {
+            .main-content h2 {
                 font-size: 18px;
             }
-            .debug-panel {
-                width: 230px;
-                padding: 14px 16px;
+            .chart-section {
+                padding: 12px 8px 10px;
+            }
+            .toc {
+                min-width: auto;
+                width: 100%;
+            }
+            .top-bar .brand {
+                font-size: 11px;
+            }
+            .top-bar .url-input {
+                max-width: 180px;
+                font-size: 11px;
+            }
+            .top-bar button {
+                padding: 6px 10px;
                 font-size: 10px;
-                bottom: 64px;
-                right: 12px;
             }
-            .debug-toggle {
-                width: 36px;
-                height: 36px;
-                font-size: 12px;
-                bottom: 14px;
-                right: 14px;
+        }
+        @media (max-width: 500px) {
+            .top-bar {
+                gap: 5px;
+                padding: 5px 6px;
+            }
+            .top-bar .url-input {
+                max-width: 130px;
+                font-size: 10px;
+                padding: 6px 7px;
+            }
+            .top-bar button {
+                padding: 5px 8px;
+                font-size: 10px;
+            }
+            .chart-section canvas {
+                max-height: 240px;
+            }
+            .top-bar .brand {
+                font-size: 10px;
+                letter-spacing: 0.02em;
             }
         }
 
-        @media (max-width: 380px) {
-            .mic-visual {
-                width: 80px;
-                height: 80px;
+        /* download button states */
+        .top-bar .download-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .top-bar .download-btn:hover {
+            background: #254a8a;
+            border-color: #254a8a;
+            color: #fff;
+        }
+        body.dark .top-bar .download-btn {
+            background: #4a7abc;
+            border-color: #4a7abc;
+        }
+        body.dark .top-bar .download-btn:hover {
+            background: #5a8acc;
+            border-color: #5a8acc;
+        }
+        .top-bar .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .top-bar .download-btn .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
             }
-            .mic-visual .mic-icon {
-                font-size: 28px;
-            }
-            .waveform-wrap {
-                height: 32px;
-            }
-            .stats-row .conf-item .conf-value {
-                min-width: 34px;
+            100% {
+                transform: rotate(360deg);
             }
         }
 
-        @media (min-height: 800px) {
-            .mic-visual {
-                width: 140px;
-                height: 140px;
-            }
-            .mic-visual .mic-icon {
-                font-size: 48px;
-            }
-            .waveform-wrap {
-                height: 56px;
-            }
-        }
-
-        .btn-primary,
-        .btn-reset,
-        .debug-toggle {
-            -webkit-touch-callout: none;
-        }
-
-        .debug-panel {
-            scroll-behavior: smooth;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                transition-duration: 0.01ms !important;
-            }
+        /* capture helper – ensure content is visible */
+        .capture-wrap {
+            position: relative;
+            overflow: visible !important;
         }
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+        <span class="brand"><i class="fa-solid fa-chart-bar"></i>Visualizer</span>
+        <input type="text" class="url-input" id="gsheetUrlInput" placeholder="Paste published Google Sheet CSV URL here...">
+        <button id="fetchUrlBtn" title="Fetch data from Google Sheets URL"><i class="fa-solid fa-cloud-arrow-down"></i> Fetch</button>
+        <label for="fileInput" style="cursor:pointer;">
+            <button style="pointer-events:none;"><i class="fa-regular fa-folder-open"></i> Upload CSV</button>
+        </label>
+        <input type="file" id="fileInput" accept=".csv">
+        <button id="resetBtn"><i class="fa-solid fa-arrow-rotate-right"></i> Default</button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+        <button class="download-btn" id="downloadAllBtn" title="Download all charts, hypotheses and reference table as PNGs in a ZIP file"><i class="fa-solid fa-download"></i> Export PNGs</button>
+        <span class="badge" id="rowCountBadge">Records loaded</span>
+    </div>
 
-    <nav>
-        <div class="brand">
-            <i class="fa-solid fa-microphone"></i>
-            <span>blow · detector</span>
-        </div>
-        <div class="badge">v1 · by h1m</div>
-    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <main>
+    <div class="layout">
+        <nav class="sidebar" id="sidebar">
+            <h3><i class="fa-solid fa-list-check"></i> Contents</h3>
+            <a href="#intro">Introduction</a>
+            <a href="#toc-section">Table of Contents</a>
+            <a href="#hypotheses">Hypotheses (H1–H25)</a>
+            <div class="separator"></div>
+            <h3><i class="fa-solid fa-chart-line"></i> Charts 1–10</h3>
+            <a href="#chart1">1. Grouped Bar</a>
+            <a href="#chart2">2. Stacked Bar</a>
+            <a href="#chart3">3. Heatmap</a>
+            <a href="#chart4">4. Clustered Bar</a>
+            <a href="#chart5">5. Pie Chart</a>
+            <a href="#chart6">6. Scatter Jitter</a>
+            <a href="#chart7">7. Box Plot</a>
+            <a href="#chart8">8. Diverging Bar</a>
+            <a href="#chart9">9. Treemap</a>
+            <a href="#chart10">10. Sankey</a>
+            <div class="separator"></div>
+            <h3><i class="fa-solid fa-chart-column"></i> Charts 11–20</h3>
+            <a href="#chart11">11. Parallel Coords</a>
+            <a href="#chart12">12. Radar</a>
+            <a href="#chart13">13. Stacked Area</a>
+            <a href="#chart14">14. Error Bar</a>
+            <a href="#chart15">15. Gender Heatmap</a>
+            <a href="#chart16">16. Histogram Overlay</a>
+            <a href="#chart17">17. Dumbbell</a>
+            <a href="#chart18">18. Network</a>
+            <a href="#chart19">19. Ridge Plot</a>
+            <a href="#chart20">20. Correlation Matrix</a>
+            <div class="separator"></div>
+            <h3><i class="fa-solid fa-table"></i> Charts 21–25</h3>
+            <a href="#chart21">21. Logistic Reg.</a>
+            <a href="#chart22">22. Survival Curve</a>
+            <a href="#chart23">23. Alluvial</a>
+            <a href="#chart24">24. Bubble</a>
+            <a href="#chart25">25. Violin Plot</a>
+            <div class="separator"></div>
+            <a href="#quickref">Quick Reference Table</a>
+        </nav>
 
-        <div id="welcomeScreen" class="container">
-            <div class="icon-wrap">
-                <i class="fa-solid fa-candle"></i>
+        <main class="main-content" id="mainContent">
+            <h1 id="intro">Smartphone Usage and Sleep Analytics</h1>
+            <p><strong>Bangladesh Survey Dataset (N &gt; 1000)</strong> — This reference document explains <strong>25 analytical charts</strong> derived from survey data on smartphone habits, sleep quality, daytime focus, and well-being. Each chart includes axis descriptions, interpretation guidance, and the hypothesis it tests. The goal is to make data-driven decisions for public health impact. You may upload a CSV file or connect directly to a Google Sheets published CSV URL for live data.</p>
+
+            <div class="toc" id="toc-section">
+                <h2>Contents</h2>
+                <ol>
+                    <li><a href="#chart1">Grouped Bar: Daily Phone Use vs Sleep Quality</a></li>
+                    <li><a href="#chart2">Stacked Bar: After-10PM Use and Bedtime</a></li>
+                    <li><a href="#chart3">Heatmap: Sleep Quality and Daytime Feeling</a></li>
+                    <li><a href="#chart4">Clustered Bar: Age Group and Focus</a></li>
+                    <li><a href="#chart5">Pie Chart: Primary Phone Activity</a></li>
+                    <li><a href="#chart6">Scatter Jitter: Phone Hours vs Sleep Hours</a></li>
+                    <li><a href="#chart7">Box Plot: After-10PM Use vs Focus</a></li>
+                    <li><a href="#chart8">Diverging Bar: Belief vs Action Gap</a></li>
+                    <li><a href="#chart9">Treemap: District Sleep Quality</a></li>
+                    <li><a href="#chart10">Sankey: Usage Flow to Sleep Quality</a></li>
+                    <li><a href="#chart11">Parallel Coordinates: Multivariate Profile</a></li>
+                    <li><a href="#chart12">Radar: Well-Being by Sleep Quality</a></li>
+                    <li><a href="#chart13">Stacked Area: Sleep Quality Over Time</a></li>
+                    <li><a href="#chart14">Error Bar: Daytime Feeling vs Phone Hours</a></li>
+                    <li><a href="#chart15">Gender Heatmap: Gender and Sleep Quality</a></li>
+                    <li><a href="#chart16">Histogram Overlay: Heavy vs Light Late Users</a></li>
+                    <li><a href="#chart17">Dumbbell: Reduction Attempt Effect</a></li>
+                    <li><a href="#chart18">Network: Activity Links to Poor Sleep</a></li>
+                    <li><a href="#chart19">Ridge Plot: Focus by Sleep Duration</a></li>
+                    <li><a href="#chart20">Correlation Matrix Heatmap</a></li>
+                    <li><a href="#chart21">Logistic Regression Odds</a></li>
+                    <li><a href="#chart22">Survival Curve: Bedtime to Good Sleep</a></li>
+                    <li><a href="#chart23">Alluvial: Age to Use to Sleep Quality</a></li>
+                    <li><a href="#chart24">Bubble Chart: Phone Hours and Sleep Hours</a></li>
+                    <li><a href="#chart25">Violin Plot: After-10PM vs Feeling</a></li>
+                </ol>
             </div>
-            <h1>blow out the candles</h1>
-            <p>
-                Tap the button below and blow into your microphone.
-                We'll detect your breath and celebrate.
-            </p>
-            <button class="btn-primary" id="enableMicBtn">
-                <i class="fa-solid fa-microphone" style="margin-right:10px;"></i>Enable Microphone
-            </button>
-            <div class="welcome-error" id="welcomeError"></div>
-        </div>
 
-        <div id="detectionScreen" class="container">
+            <h2 id="hypotheses">Hypotheses Tested (H1–H25)</h2>
+            <ol style="max-width:750px;">
+                <li><strong>H1:</strong> High phone use (8 or more hours per day) is linked to poor sleep quality.</li>
+                <li><strong>H2:</strong> Using the phone for 4 or more hours after 10 PM pushes bedtime past midnight.</li>
+                <li><strong>H3:</strong> Poor sleep quality is linked to low daytime feeling scores (1 to 2).</li>
+                <li><strong>H4:</strong> Older teenagers (16 to 18) report worse focus than adults (25 and older) despite similar sleep.</li>
+                <li><strong>H5:</strong> Social media and gaming are dominant activities linked to worse sleep.</li>
+                <li><strong>H6:</strong> There is a negative correlation: more phone hours means fewer sleep hours.</li>
+                <li><strong>H7:</strong> Heavy after-10PM users have lower median focus scores.</li>
+                <li><strong>H8:</strong> A belief–action gap exists: many know phone use hurts sleep but do not reduce use.</li>
+                <li><strong>H9:</strong> Geographic disparities exist in average sleep quality across districts.</li>
+                <li><strong>H10:</strong> The most common pathway is: high daily use, heavy after-10PM use, late bedtime, and poor sleep.</li>
+                <li><strong>H11:</strong> The combination of high phone use, late-night use, and late bedtime creates a profile of low focus and poor sleep.</li>
+                <li><strong>H12:</strong> Good sleepers score better on all well-being dimensions simultaneously.</li>
+                <li><strong>H13:</strong> Sleep quality varies by day of survey submission, suggesting a weekend effect.</li>
+                <li><strong>H14:</strong> Lower daytime feeling scores correlate with significantly higher mean phone hours.</li>
+                <li><strong>H15:</strong> Females report poorer sleep quality than males.</li>
+                <li><strong>H16:</strong> Heavy late users have a sleep distribution shifted toward shorter duration.</li>
+                <li><strong>H17:</strong> Respondents who tried reducing screen time report better sleep.</li>
+                <li><strong>H18:</strong> The combination of social media and gaming after 10 PM is strongly linked to poor sleep.</li>
+                <li><strong>H19:</strong> Shorter sleep duration pushes focus scores toward the low end (1 to 2).</li>
+                <li><strong>H20:</strong> After-10PM use correlates more negatively with sleep quality than total daily use.</li>
+                <li><strong>H21:</strong> Using the phone for 4 or more hours after 10 PM multiplies the odds of poor sleep by approximately 3.5 times, after adjustments.</li>
+                <li><strong>H22:</strong> Delaying bedtime past midnight sharply reduces the chance of good sleep.</li>
+                <li><strong>H23:</strong> Age-specific pathways exist: younger groups show more gaming-related poor sleep.</li>
+                <li><strong>H24:</strong> The high-phone, low-sleep quadrant is densely populated by poor sleepers.</li>
+                <li><strong>H25:</strong> The 4 or more hours after-10PM group has a long tail of very bad daytime feeling scores.</li>
+            </ol>
 
-            <div class="status-badge" id="statusBadge">waiting…</div>
+            <div id="chartsContainer"></div>
 
-            <div class="mic-visual" id="micVisual">
-                <div class="mic-ring" id="micRing"></div>
-                <i class="fa-solid fa-microphone mic-icon" id="micIcon"></i>
+            <h2 id="quickref">Quick Reference: Chart–Hypothesis Mapping</h2>
+            <div style="overflow-x:auto;max-width:800px;">
+                <table style="border-collapse:collapse;font-size:12px;width:100%;margin:12px 0;">
+                    <thead>
+                        <tr style="background:var(--table-header-bg);">
+                            <th style="border:1px solid var(--table-border);padding:6px;">Chart #</th>
+                            <th style="border:1px solid var(--table-border);padding:6px;">Name</th>
+                            <th style="border:1px solid var(--table-border);padding:6px;">Primary Hypothesis</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mappingTableBody"></tbody>
+                </table>
             </div>
 
-            <div class="waveform-wrap" id="waveformWrap">
-                <canvas id="waveformCanvas"></canvas>
+            <div class="wiki-footer">
+                <span>Data sourced from Bangladesh smartphone usage and sleep survey. All charts rendered with Chart.js and custom canvas graphics. For research and public health planning purposes.</span>
+                <span class="credit">Developed by Walif</span>
             </div>
-
-            <div class="meter-wrap">
-                <div class="meter-label">
-                    <span>level</span>
-                    <span id="levelPercent">0%</span>
-                </div>
-                <div class="meter-track">
-                    <div class="meter-fill" id="meterFill"></div>
-                </div>
-            </div>
-
-            <div class="stats-row">
-                <div class="conf-item">
-                    <span class="conf-dot" id="confDot"></span>
-                    <span class="conf-label">confidence</span>
-                    <span class="conf-value" id="confValue">0%</span>
-                </div>
-                <div class="conf-item">
-                    <span class="conf-label">state</span>
-                    <span class="conf-value" id="stateLabel" style="opacity:0.6;font-weight:300;">—</span>
-                </div>
-            </div>
-
-            <div class="detected-overlay" id="detectedOverlay">
-                <div class="big-icon"><i class="fa-solid fa-candle"></i></div>
-                <div class="big-text">blow detected!</div>
-                <div class="sub-text">the candles are out&nbsp;—&nbsp;try again?</div>
-                <button class="btn-reset" id="resetBtn">blow again</button>
-            </div>
-
-        </div>
-
-    </main>
-
-    <button class="debug-toggle" id="debugToggle" aria-label="Toggle debug panel">
-        <i class="fa-solid fa-bug"></i>
-    </button>
-
-    <div class="debug-panel" id="debugPanel">
-        <div class="debug-title">debug</div>
-        <div class="debug-row"><span class="debug-label">rms</span><span class="debug-value" id="dRms">—</span></div>
-        <div class="debug-row"><span class="debug-label">peak</span><span class="debug-value" id="dPeak">—</span></div>
-        <div class="debug-row"><span class="debug-label">baseline</span><span class="debug-value" id="dBaseline">—</span></div>
-        <div class="debug-row"><span class="debug-label">threshold</span><span class="debug-value" id="dThreshold">—</span></div>
-        <div class="debug-row"><span class="debug-label">confidence</span><span class="debug-value" id="dConfidence">—</span></div>
-        <div class="debug-row"><span class="debug-label">timer</span><span class="debug-value" id="dTimer">—</span></div>
-        <div class="debug-row"><span class="debug-label">status</span><span class="debug-value" id="dStatus">—</span></div>
-        <div class="debug-row"><span class="debug-label">calibration</span><span class="debug-value" id="dCalib">—</span></div>
-        <div class="debug-row"><span class="debug-label">flatness</span><span class="debug-value" id="dFlatness">—</span></div>
-        <div class="debug-divider"></div>
-        <div class="debug-title" style="margin-top:4px;">test mode</div>
-        <div class="test-status-line">
-            <span style="opacity:0.5;">status</span>
-            <span class="test-indicator waiting" id="testIndicator">waiting</span>
-            <span class="test-trigger-count" id="testTriggerCount"></span>
-            <button class="test-reset-btn" id="testResetBtn"><i class="fa-regular fa-rotate-right"></i></button>
-        </div>
-        <div class="debug-row" style="padding-top:2px;">
-            <span class="debug-label">triggers</span>
-            <span class="debug-value" id="dTriggers">0</span>
-        </div>
+        </main>
     </div>
 
     <script>
-        (function() {
-            'use strict';
+        let currentRecords = [];
+        let chartInstances = {};
+        let isDarkMode = false;
 
-            const $ = (id) => document.getElementById(id);
-            const DOM = {
-                welcome: $('welcomeScreen'),
-                detection: $('detectionScreen'),
-                enableBtn: $('enableMicBtn'),
-                welcomeError: $('welcomeError'),
-                statusBadge: $('statusBadge'),
-                micRing: $('micRing'),
-                micIcon: $('micIcon'),
-                waveformCanvas: $('waveformCanvas'),
-                meterFill: $('meterFill'),
-                levelPercent: $('levelPercent'),
-                confDot: $('confDot'),
-                confValue: $('confValue'),
-                stateLabel: $('stateLabel'),
-                detectedOverlay: $('detectedOverlay'),
-                resetBtn: $('resetBtn'),
-                debugToggle: $('debugToggle'),
-                debugPanel: $('debugPanel'),
-                dRms: $('dRms'),
-                dPeak: $('dPeak'),
-                dBaseline: $('dBaseline'),
-                dThreshold: $('dThreshold'),
-                dConfidence: $('dConfidence'),
-                dTimer: $('dTimer'),
-                dStatus: $('dStatus'),
-                dCalib: $('dCalib'),
-                dFlatness: $('dFlatness'),
-                dTriggers: $('dTriggers'),
-                testIndicator: $('testIndicator'),
-                testTriggerCount: $('testTriggerCount'),
-                testResetBtn: $('testResetBtn'),
-            };
+        const chartTitles = {
+            1: 'Grouped Bar: Daily Phone Use vs Sleep Quality',
+            2: 'Stacked Bar: After-10PM Use and Bedtime',
+            3: 'Heatmap: Sleep Quality and Daytime Feeling Score',
+            4: 'Clustered Bar: Age Group and Focus Score',
+            5: 'Pie Chart: Primary Phone Activity',
+            6: 'Scatter with Jitter: Daily Phone Hours vs Sleep Hours',
+            7: 'Box Plot: After-10PM Use vs Focus Score',
+            8: 'Diverging Stacked Bar: Belief vs Action Gap',
+            9: 'Treemap: District by Average Sleep Quality',
+            10: 'Sankey Diagram: Usage Flow to Sleep Quality',
+            11: 'Parallel Coordinates: Multivariate Profile',
+            12: 'Radar Chart: Well-Being by Sleep Quality Group',
+            13: 'Stacked Area: Sleep Quality Over Submission Time',
+            14: 'Bar with Error Bars: Daytime Feeling vs Mean Phone Hours',
+            15: 'Two-Way Heatmap: Gender and Sleep Quality',
+            16: 'Histogram Overlay: Heavy vs Light Late Users',
+            17: 'Dumbbell Plot: Reduction Attempt Effect',
+            18: 'Network Graph: Activities to Poor Sleep',
+            19: 'Ridge Plot: Focus Distribution by Sleep Duration',
+            20: 'Correlation Matrix Heatmap',
+            21: 'Logistic Regression: Odds Ratios for Poor Sleep',
+            22: 'Survival Curve: Bedtime Delay to Good Sleep Probability',
+            23: 'Alluvial Diagram: Age to Use to Sleep Quality',
+            24: 'Bubble Chart: Phone Hours and Sleep Hours',
+            25: 'Violin Plot: After-10PM Use vs Daytime Feeling'
+        };
 
-            const STATE = {
-                IDLE: 'idle',
-                CALIBRATING: 'calibrating',
-                LISTENING: 'listening',
-                DETECTED: 'detected',
-                ERROR: 'error',
-            };
+        const hypothesisMap = { 1: 'H1', 2: 'H2', 3: 'H3', 4: 'H4', 5: 'H5', 6: 'H6', 7: 'H7', 8: 'H8', 9: 'H9', 10: 'H10',
+            11: 'H11', 12: 'H12', 13: 'H13', 14: 'H14', 15: 'H15', 16: 'H16', 17: 'H17', 18: 'H18', 19: 'H19', 20: 'H20',
+            21: 'H21', 22: 'H22', 23: 'H23', 24: 'H24', 25: 'H25'
+        };
 
-            let state = STATE.IDLE;
-            let audioContext = null;
-            let analyser = null;
-            let dataArray = null;
-            let timeData = null;
-            let stream = null;
-            let animationId = null;
-            let isListening = false;
+        function getDailyPhoneNum(val) { if (!val) return 0; const m = String(val).match(/\d+/); return m ? parseFloat(m[0]) :
+            0; }
 
-            let calibrationSamples = [];
-            let calibrationCount = 0;
-            const CALIBRATION_DURATION = 2800;
-            let calibrationStart = 0;
+        function getAfter10pmNum(cat) { if (!cat) return 0; const c = cat.toLowerCase(); if (c.includes('less') || c.includes(
+                '<1')) return 0.5; if (c.includes('2-3')) return 2.5; if (c.includes('4+') || c.includes('4 +')) return 5; if (
+                c.includes('none')) return 0; return 1; }
 
-            let baseline = 0.002;
-            let thresholdMultiplier = 1.2;  // more sensitive
-            let detectionTimer = 0;
-            let detectionActive = false;
-            let blowStartTime = 0;
-            let blowSamples = [];
-            const MIN_BLOW_MS = 150;        // shorter to trigger faster
-            const MAX_BLOW_MS = 1200;
-            let isDetected = false;
-            let suppressUntil = 0;
+        function getSleepHoursNum(val) { if (!val) return 6; const v = val.toLowerCase(); if (v.includes('5-6')) return 5.5; if (
+                v.includes('7-8')) return 7.5; if (v.includes('8+')) return 8.5; if (v.includes('less than 4') || v.includes(
+                '<4')) return 3.5; return 6; }
 
-            let triggerCount = 0;
+        function mapSleepQuality(q) { if (!q) return 'Average'; const l = q.toLowerCase(); if (l.includes('good')) return 'Good';
+            if (l.includes('poor')) return 'Poor'; return 'Average'; }
 
-            function initAudioContext() {
-                if (!window.AudioContext && !window.webkitAudioContext) {
-                    throw new Error('Web Audio API not supported');
-                }
-                const Ctor = window.AudioContext || window.webkitAudioContext;
-                return new Ctor();
+        function binDailyPhone(hrs) { if (hrs <= 3) return '≤3h'; if (hrs <= 7) return '4-7h'; if (hrs <= 11) return '8-11h';
+            return '≥12h'; }
+
+        function binAfter10pmCat(cat) { const c = (cat || '').toLowerCase(); if (c.includes('less') || c.includes('<1'))
+            return '<1h'; if (c.includes('2-3')) return '2-3h'; return '4+ h'; }
+
+        function getBedtimeCat(val) { const v = (val || '').toLowerCase(); if (v.includes('before')) return 'Before 10PM'; if (v
+                .includes('10pm') || v.includes('10 pm')) return '10PM-12AM'; return 'After 12AM'; }
+
+        function parseCSV(csvText) {
+            const rows = [];
+            let currentRow = [];
+            let currentField = '';
+            let insideQuotes = false;
+            let i = 0;
+            const len = csvText.length;
+            while (i < len) {
+                const ch = csvText[i];
+                if (ch === '"') {
+                    if (insideQuotes && csvText[i + 1] === '"') { currentField += '"'; i++; } else insideQuotes = !insideQuotes;
+                } else if (ch === ',' && !insideQuotes) {
+                    currentRow.push(currentField.trim());
+                    currentField = '';
+                } else if ((ch === '\n' || (ch === '\r' && csvText[i + 1] === '\n')) && !insideQuotes) {
+                    currentRow.push(currentField.trim());
+                    if (currentRow.length > 0) rows.push(currentRow);
+                    currentRow = [];
+                    currentField = '';
+                    if (ch === '\r') i++;
+                } else { currentField += ch; }
+                i++;
             }
+            if (currentField || currentRow.length) { currentRow.push(currentField.trim());
+                rows.push(currentRow); }
+            if (rows.length < 2) throw new Error('CSV file is too short. It must contain a header row and at least one data row.');
+            const headers = rows[0].map(h => h.replace(/^"|"$/g, '').trim());
+            const records = [];
+            for (let r = 1; r < rows.length; r++) {
+                if (rows[r].length === 1 && rows[r][0] === '') continue;
+                const obj = {};
+                headers.forEach((h, idx) => { obj[h] = (rows[r][idx] || '').replace(/^"|"$/g, '').trim(); });
+                records.push(obj);
+            }
+            return records;
+        }
 
-            async function setupMicrophone() {
+        function getCol(rec, name) {
+            if (rec[name] !== undefined) return rec[name];
+            const keys = Object.keys(rec);
+            for (const k of keys) {
+                if (k.trim().toLowerCase() === name.trim().toLowerCase()) return rec[k];
+                if (k.includes(name.trim()) || name.trim().includes(k.trim())) return rec[k];
+            }
+            return '';
+        }
+
+        function destroyAllCharts() {
+            for (let id in chartInstances) { try { chartInstances[id].destroy(); } catch (e) {} }
+            chartInstances = {};
+        }
+
+        function getThemeBg() { return isDarkMode ? '#1e1e3a' : '#fafafa'; }
+
+        function getThemeText() { return isDarkMode ? '#e0e0e0' : '#333333'; }
+
+        function getThemeCardBg() { return isDarkMode ? '#1a1a2e' : '#fafafa'; }
+
+        function renderAllCharts(records) {
+            destroyAllCharts();
+            document.getElementById('rowCountBadge').innerText = records.length + ' records';
+            const container = document.getElementById('chartsContainer');
+            container.innerHTML = '';
+            for (let i = 1; i <= 25; i++) {
+                const section = document.createElement('div');
+                section.className = 'chart-section';
+                section.id = 'chart' + i;
+                section.setAttribute('data-chart-id', i);
+                section.innerHTML = `
+              <div class="chart-header">
+                <h3>${i}. ${chartTitles[i]}</h3>
+                <span class="hypothesis-tag">Tests ${hypothesisMap[i]}</span>
+              </div>
+              <canvas id="chartCanvas_${i}" style="width:100%;max-height:340px;"></canvas>
+              <div class="axis-info" id="axisInfo_${i}"></div>
+            `;
+                container.appendChild(section);
+            }
+            setTimeout(() => { drawAllCharts(records);
+                updateAxisInfo(); }, 80);
+        }
+
+        function updateAxisInfo() {
+            const infos = {
+                1: 'X-axis: Daily phone use bins (≤3h, 4-7h, 8-11h, ≥12h) | Y-axis: Count | Color: Sleep quality (Good/Average/Poor)',
+                2: 'X-axis: After-10PM use (<1h, 2-3h, 4+h) | Y-axis: Percentage of respondents | Stack: Bedtime category',
+                3: 'Rows: Sleep quality | Columns: Daytime feeling (1-5) | Cell color intensity: Count',
+                4: 'X-axis: Age group | Y-axis: Percentage of age group | Color: Focus level (low/medium/high)',
+                5: 'Full circle represents 100% of respondents | Slices: Primary phone activity | Size: Percentage',
+                6: 'X-axis: Daily phone hours (numeric) | Y-axis: Sleep hours (approximate numeric) | Each dot is one respondent',
+                7: 'X-axis: After-10PM use category | Y-axis: Focus score (1-5) | Box shows median and spread',
+                8: 'X-axis: Percentage | Y-axis: Belief group | Bars: Tried to reduce (Yes/No) diverging from center',
+                9: 'Rectangle size: Number of respondents from district | Color: Average sleep quality (green indicates good, red indicates poor)',
+                10: 'Nodes: Daily use to After-10PM to Bedtime to Sleep quality | Band width: Number of people on that path',
+                11: 'Vertical axes: Age, daily hours, after-10PM, sleep hours, focus, sleep quality | Each line is one person',
+                12: 'Axes: Focus, Daytime Feeling, inverse Sleepiness | Polygons: Good/Average/Poor sleepers',
+                13: 'X-axis: Submission date | Y-axis: Percentage | Stacked layers: Good/Average/Poor sleep quality',
+                14: 'X-axis: Daytime feeling score (1-5) | Y-axis: Mean daily phone hours | Error bars: 95% confidence interval',
+                15: 'Rows: Gender | Columns: Sleep quality | Cell color: Percentage within gender',
+                16: 'X-axis: Sleep hours (approximate) | Y-axis: Density | Overlay: Heavy (4+h) vs Light (<1h) after-10PM users',
+                17: 'Y-axis: Group (Tried vs Did not try) | X-axis: Percentage reporting Good sleep | Connected dots show the gap',
+                18: 'Nodes: Activities and Sleep quality | Edge width: Co-occurrence strength',
+                19: 'X-axis: Focus score (1-5) | Stacked curves: Sleep duration groups | Height: Density',
+                20: 'Rows and Columns: Numeric variables | Cell: Correlation coefficient (-1 to 1) | Color intensity indicates strength',
+                21: 'Y-axis: Predictors | X-axis: Odds ratio (log scale) | Dot and line: Odds ratio with 95% confidence interval',
+                22: 'X-axis: Hours past 10 PM (bedtime) | Y-axis: Probability of Good sleep | Curve steps downward',
+                23: 'Vertical blocks: Age to Daily use to After-10PM to Sleep quality | Flow width: Count',
+                24: 'X-axis: Daily phone hours | Y-axis: Sleep hours | Bubble size: Count | Color: Sleep quality',
+                25: 'X-axis: After-10PM categories | Y-axis: Daytime feeling (1-5) | Violin shape: Density distribution'
+            };
+            for (let i = 1; i <= 25; i++) {
+                const el = document.getElementById('axisInfo_' + i);
+                if (el && infos[i]) el.innerHTML = '<span><i class="fa-solid fa-ruler-combined"></i> ' + infos[i] + '</span>';
+            }
+        }
+
+        function drawAllCharts(records) {
+            const n = records.length;
+            if (n === 0) return;
+            for (let i = 1; i <= 25; i++) {
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false,
-                        }
-                    });
-                    return stream;
+                    const ctx = document.getElementById('chartCanvas_' + i)?.getContext('2d');
+                    if (!ctx) continue;
+                    switch (i) {
+                        case 1:
+                            drawGroupedBar(records, ctx);
+                            break;
+                        case 2:
+                            drawStackedBar(records, ctx);
+                            break;
+                        case 3:
+                            drawHeatmap(records, ctx);
+                            break;
+                        case 4:
+                            drawClusteredBar(records, ctx);
+                            break;
+                        case 5:
+                            drawPie(records, ctx);
+                            break;
+                        case 6:
+                            drawScatter(records, ctx);
+                            break;
+                        case 7:
+                            drawBoxplot(records, ctx);
+                            break;
+                        case 8:
+                            drawDivergingBar(records, ctx);
+                            break;
+                        case 9:
+                            drawTreemap(records, ctx);
+                            break;
+                        case 10:
+                            drawSankey(records, ctx);
+                            break;
+                        case 11:
+                            drawParallelCoords(records, ctx);
+                            break;
+                        case 12:
+                            drawRadar(records, ctx);
+                            break;
+                        case 13:
+                            drawArea(records, ctx);
+                            break;
+                        case 14:
+                            drawErrorBar(records, ctx);
+                            break;
+                        case 15:
+                            drawGenderHeatmap(records, ctx);
+                            break;
+                        case 16:
+                            drawHistOverlay(records, ctx);
+                            break;
+                        case 17:
+                            drawDumbbell(records, ctx);
+                            break;
+                        case 18:
+                            drawNetwork(records, ctx);
+                            break;
+                        case 19:
+                            drawRidge(records, ctx);
+                            break;
+                        case 20:
+                            drawCorrelation(records, ctx);
+                            break;
+                        case 21:
+                            drawLogistic(records, ctx);
+                            break;
+                        case 22:
+                            drawSurvival(records, ctx);
+                            break;
+                        case 23:
+                            drawAlluvial(records, ctx);
+                            break;
+                        case 24:
+                            drawBubble(records, ctx);
+                            break;
+                        case 25:
+                            drawViolin(records, ctx);
+                            break;
+                    }
                 } catch (err) {
-                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        throw new Error('permission-denied');
-                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                        throw new Error('no-microphone');
-                    } else {
-                        throw new Error('microphone-error');
+                    console.error('Chart ' + i + ' error:', err);
+                    const canvas = document.getElementById('chartCanvas_' + i);
+                    if (canvas) {
+                        const c = canvas.getContext('2d');
+                        c.fillStyle = getThemeCardBg();
+                        c.fillRect(0, 0, canvas.width, canvas.height);
+                        c.fillStyle = '#d94f4f';
+                        c.font = '12px sans-serif';
+                        c.fillText('Chart rendering issue - please check your data', 20, 40);
                     }
                 }
             }
+        }
 
-            function setupAudioPipeline(stream) {
-                if (!audioContext || audioContext.state === 'closed') {
-                    audioContext = initAudioContext();
-                }
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
+        function drawGroupedBar(records, ctx) {
+            const bins = { '≤3h': { Good: 0, Average: 0, Poor: 0 }, '4-7h': { Good: 0, Average: 0, Poor: 0 },
+                '8-11h': { Good: 0, Average: 0, Poor: 0 }, '≥12h': { Good: 0, Average: 0, Poor: 0 } };
+            records.forEach(r => { const d = getDailyPhoneNum(getCol(r,
+                    'On average how many hours do you spend on your phone daily? (Just write the approximate number)'));
+                const bin = binDailyPhone(d); const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?'));
+                bins[bin][sq]++; });
+            const labels = Object.keys(bins);
+            chartInstances[1] = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Good', data: labels.map(
+                        l => bins[l].Good), backgroundColor: '#4caf84' }, { label: 'Average', data: labels.map(l => bins[l]
+                        .Average), backgroundColor: '#f0c040' }, { label: 'Poor', data: labels.map(l => bins[l].Poor),
+                        backgroundColor: '#e05555' }] }, options: { responsive: true, maintainAspectRatio: true,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } }, x: { title: { display: true,
+                                text: 'Daily Phone Use' } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-                const source = audioContext.createMediaStreamSource(stream);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 512;
-                analyser.smoothingTimeConstant = 0.8;
+        function drawStackedBar(records, ctx) {
+            const bins = { '<1h': { 'Before 10PM': 0, '10PM-12AM': 0, 'After 12AM': 0 }, '2-3h': { 'Before 10PM': 0,
+                    '10PM-12AM': 0, 'After 12AM': 0 }, '4+ h': { 'Before 10PM': 0, '10PM-12AM': 0, 'After 12AM': 0 } };
+            records.forEach(r => { const after = binAfter10pmCat(getCol(r, 'How much time do you spend your phone after 10PM?'));
+                const bed = getBedtimeCat(getCol(r, 'What time do you usually go to sleep?')); if (bins[after]) bins[after][
+                    bed]++; });
+            chartInstances[2] = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(bins), datasets: [{ label: 'Before 10PM',
+                        data: Object.values(bins).map(v => v['Before 10PM']), backgroundColor: '#7eb8da' }, { label: '10PM-12AM',
+                        data: Object.values(bins).map(v => v['10PM-12AM']), backgroundColor: '#f7a072' }, { label: 'After 12AM',
+                        data: Object.values(bins).map(v => v['After 12AM']), backgroundColor: '#d94f4f' }] },
+                options: { responsive: true, scales: { x: { stacked: true, title: { display: true,
+                            text: 'After-10PM Phone Use' } }, y: { stacked: true, title: { display: true,
+                            text: 'Count' } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-                source.connect(analyser);
+        function drawHeatmap(records, ctx) {
+            const mat = [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ];
+            records.forEach(r => { const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?')); const feel =
+                    parseInt(getCol(r, 'How do you feel during the day?')) || 1; const row = sq === 'Good' ? 0 : (sq ===
+                    'Average' ? 1 : 2); if (feel >= 1 && feel <= 5) mat[row][feel - 1]++; });
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 280;
+            canvas.width = w;
+            canvas.height = h;
+            const bg = getThemeCardBg();
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, w, h);
+            const cellW = (w - 80) / 5,
+                cellH = (h - 60) / 3;
+            const maxVal = Math.max(...mat.flat(), 1);
+            for (let i = 0; i < 3; i++)
+                for (let j = 0; j < 5; j++) { const intensity = mat[i][j] / maxVal; const r = Math.floor(255 - intensity *
+                    180); const g = Math.floor(240 - intensity * 200); const b = Math.floor(240 - intensity * 180);
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(40 + j * cellW, 30 + i * cellH, cellW - 2, cellH - 2);
+                    ctx.fillStyle = intensity > 0.45 ? '#fff' : '#000';
+                    ctx.font = '11px sans-serif';
+                    ctx.fillText(mat[i][j], 44 + j * cellW + cellW / 3, 44 + i * cellH + cellH / 1.8); }
+            ctx.fillStyle = getThemeText();
+            ctx.font = '12px sans-serif';
+            const rowLabels = ['Good', 'Average', 'Poor'];
+            for (let i = 0; i < 3; i++) ctx.fillText(rowLabels[i], 4, 48 + i * cellH + cellH / 2);
+            for (let j = 0; j < 5; j++) ctx.fillText('Feeling ' + (j + 1), 40 + j * cellW + cellW / 4, 22);
+            ctx.fillText('Sleep Quality', 2, 16);
+            ctx.fillText('Daytime Feeling Score', w / 2 - 40, h - 4);
+        }
 
-                const bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
-                timeData = new Uint8Array(analyser.fftSize);
+        function drawClusteredBar(records, ctx) {
+            const ages = { '13-15': { low: 0, med: 0, high: 0 }, '16-18': { low: 0, med: 0, high: 0 }, '19-25': { low: 0,
+                    med: 0, high: 0 }, '25+': { low: 0, med: 0, high: 0 } };
+            records.forEach(r => { let age = getCol(r, 'How old are you?') || '25+'; if (!ages[age]) age = '25+'; const focus =
+                    parseInt(getCol(r, 'How well can you focus during study or classes?')) || 3; const cat = focus <= 2 ?
+                    'low' : (focus === 3 ? 'med' : 'high'); ages[age][cat]++; });
+            chartInstances[4] = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(ages), datasets: [{ label: 'Low Focus (1-2)',
+                        data: Object.values(ages).map(v => v.low), backgroundColor: '#e05555' }, { label: 'Medium (3)',
+                        data: Object.values(ages).map(v => v.med), backgroundColor: '#f0c040' }, { label: 'High (4-5)',
+                        data: Object.values(ages).map(v => v.high), backgroundColor: '#4caf84' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } },
+                        x: { title: { display: true, text: 'Age Group' } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-                return { analyser, bufferLength };
-            }
+        function drawPie(records, ctx) {
+            const counts = { 'Social Media': 0, 'Watching Videos': 0, 'Gaming': 0, 'Studying': 0, 'Other/Mixed': 0 };
+            records.forEach(r => { const act = (getCol(r, 'What do you mostly use your phone for?') || '').toLowerCase(); if (
+                    act.includes('social')) counts['Social Media']++; else if (act.includes('watch')) counts[
+                    'Watching Videos']++; else if (act.includes('gam')) counts['Gaming']++; else if (act.includes('stud') ||
+                    act.includes('edu')) counts['Studying']++; else counts['Other/Mixed']++; });
+            chartInstances[5] = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object
+                            .values(counts), backgroundColor: ['#4caf84', '#7eb8da', '#f7a072', '#f0c040', '#b0b0b0'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'right' } } } });
+        }
 
-            function computeRms(timeData) {
-                let sum = 0;
-                for (let i = 0; i < timeData.length; i++) {
-                    const val = (timeData[i] - 128) / 128;
-                    sum += val * val;
-                }
-                return Math.sqrt(sum / timeData.length);
-            }
+        function drawScatter(records, ctx) {
+            const data = records.map(r => ({ x: getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)')),
+                    y: getSleepHoursNum(getCol(r, 'How many hours do you sleep per night?')) })).filter(d => d.x > 0 && d
+                .y > 0);
+            chartInstances[6] = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: 'Respondents', data,
+                        backgroundColor: 'rgba(60,100,180,0.5)', pointRadius: 3 }] }, options: { responsive: true,
+                    scales: { x: { title: { display: true, text: 'Daily Phone Hours' }, min: 0, max: 20 }, y: { title: { display: true,
+                                text: 'Sleep Hours (approx)' }, min: 2, max: 10 } } } });
+        }
 
-            function computePeak(timeData) {
-                let max = 0;
-                for (let i = 0; i < timeData.length; i++) {
-                    const val = Math.abs((timeData[i] - 128) / 128);
-                    if (val > max) max = val;
-                }
-                return max;
-            }
+        function drawBoxplot(records, ctx) {
+            const groups = { '<1h': [], '2-3h': [], '4+ h': [] };
+            records.forEach(r => { const cat = binAfter10pmCat(getCol(r, 'How much time do you spend your phone after 10PM?'));
+                const foc = parseInt(getCol(r, 'How well can you focus during study or classes?')) || 3; if (groups[cat])
+                    groups[cat].push(foc); });
+            const labels = Object.keys(groups);
+            const medians = labels.map(l => { const arr = groups[l].sort((a, b) => a - b); return arr.length ? arr[Math.floor(
+                    arr.length / 2)] : 0; });
+            const q1 = labels.map(l => { const arr = groups[l].sort((a, b) => a - b); return arr.length ? arr[Math.floor(arr
+                    .length * 0.25)] : 0; });
+            const q3 = labels.map(l => { const arr = groups[l].sort((a, b) => a - b); return arr.length ? arr[Math.floor(arr
+                    .length * 0.75)] : 0; });
+            chartInstances[7] = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Median Focus', data: medians,
+                        backgroundColor: '#4c7abc' }, { label: 'Q1 (25th percentile)', data: q1,
+                        backgroundColor: '#a0c4e8' }, { label: 'Q3 (75th percentile)', data: q3,
+                        backgroundColor: '#2a5a8c' }] }, options: { responsive: true, scales: { y: { min: 0, max: 5,
+                            title: { display: true, text: 'Focus Score' } }, x: { title: { display: true,
+                            text: 'After-10PM Phone Use' } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-            // Simple flatness not used for triggering, but kept for debug
-            function computeSpectralFlatness(dataArray) {
-                let sum = 0;
-                let sumLog = 0;
-                let count = 0;
-                const eps = 1e-10;
-                for (let i = 1; i < dataArray.length; i++) {
-                    const val = dataArray[i] / 255 + eps;
-                    sum += val;
-                    sumLog += Math.log(val);
-                    count++;
-                }
-                if (count === 0 || sum === 0) return 0.5;
-                const arith = sum / count;
-                const geom = Math.exp(sumLog / count);
-                const ratio = geom / arith;
-                return Math.min(1, Math.max(0, ratio * 1.2));
-            }
+        function drawDivergingBar(records, ctx) {
+            const belief = { Yes: { tried: 0, notTried: 0 }, No: { tried: 0, notTried: 0 }, 'Not sure': { tried: 0,
+                    notTried: 0 } };
+            records.forEach(r => { const b = getCol(r, 'Do you think mobile phone usage effects your sleep?') || 'Not sure';
+                const t = getCol(r, 'Have you ever tried to reduce your screen time for better sleep?') || 'No'; const key =
+                    (b.includes('Yes') ? 'Yes' : (b.includes('No') ? 'No' : 'Not sure')); const tried = t.includes('Yes'); if (
+                    belief[key]) { if (tried) belief[key].tried++;
+                    else belief[key].notTried++; } });
+            const labels = Object.keys(belief);
+            chartInstances[8] = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Tried to reduce', data: labels
+                        .map(l => belief[l].tried), backgroundColor: '#4caf84' }, { label: 'Did NOT try', data: labels.map(
+                        l => -belief[l].notTried), backgroundColor: '#e05555' }] }, options: { responsive: true,
+                    indexAxis: 'y', scales: { x: { stacked: false, title: { display: true,
+                            text: 'Did NOT try  |  Tried to reduce' }, ticks: { callback: v => Math.abs(v) } },
+                        y: { title: { display: true, text: 'Believes phone affects sleep?' } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-            function updateDebugTestUI() {
-                const indicator = DOM.testIndicator;
-                const countEl = DOM.testTriggerCount;
-                
-                if (isDetected || triggerCount > 0) {
-                    indicator.className = 'test-indicator triggered';
-                    indicator.textContent = 'triggered';
-                    countEl.textContent = '×' + triggerCount;
-                } else {
-                    indicator.className = 'test-indicator waiting';
-                    indicator.textContent = 'waiting';
-                    countEl.textContent = '';
-                }
-                DOM.dTriggers.textContent = triggerCount;
-            }
+        function drawTreemap(records, ctx) {
+            const districts = {};
+            records.forEach(r => { const d = getCol(r, ' Which district are you from? ') || getCol(r,
+                    'Which district are you from?') || 'Unknown'; if (!districts[d]) districts[d] = { count: 0, sqSum: 0,
+                    sqCount: 0 }; districts[d].count++; const sq = mapSleepQuality(getCol(r,
+                    'How’d you rate your sleep quality?')); districts[d].sqSum += (sq === 'Good' ? 3 : sq === 'Average' ?
+                    2 : 1);
+                districts[d].sqCount++; });
+            const entries = Object.entries(districts).sort((a, b) => b[1].count - a[1].count).slice(0, 16);
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 300;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const cols = 4,
+                rows = Math.ceil(entries.length / cols),
+                cellW = (w - 20) / cols,
+                cellH = (h - 20) / rows;
+            entries.forEach(([name, data], i) => { const col = i % cols,
+                    row = Math.floor(i / cols); const avgSq = data.sqCount > 0 ? data.sqSum / data.sqCount : 2; const green =
+                    Math.floor((avgSq - 1) / 2 * 200); const red = Math.floor((3 - avgSq) / 2 * 200);
+                    ctx.fillStyle = `rgb(${red},${green+40},${Math.floor(green*0.6)})`;
+                    ctx.fillRect(8 + col * cellW, 8 + row * cellH, cellW - 4, cellH - 4);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.fillText(name, 14 + col * cellW, 26 + row * cellH);
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText('n=' + data.count + ' | sq=' + avgSq.toFixed(1), 14 + col * cellW, 42 + row * cellH); });
+        }
 
-            function resetTestStatus() {
-                triggerCount = 0;
-                updateDebugTestUI();
-            }
-
-            function updateDetection(rms, peak, flatness) {
-                const now = performance.now();
-
-                if (now < suppressUntil) {
-                    return;
-                }
-
-                if (isDetected) {
-                    return;
-                }
-
-                const threshold = baseline * thresholdMultiplier;
-
-                if (state === STATE.CALIBRATING) {
-                    calibrationSamples.push(rms);
-                    calibrationCount++;
-                    if (now - calibrationStart > CALIBRATION_DURATION) {
-                        finishCalibration();
-                    }
-                    return;
-                }
-
-                if (state === STATE.LISTENING || state === STATE.IDLE) {
-                    if (state === STATE.IDLE) {
-                        setState(STATE.LISTENING);
-                    }
-
-                    // Simple detection: if RMS > threshold and stays for MIN_BLOW_MS
-                    if (rms > threshold && rms > 0.005) {
-                        if (!detectionActive) {
-                            detectionActive = true;
-                            blowStartTime = now;
-                            blowSamples = [rms];
-                            detectionTimer = 0;
-                        } else {
-                            const elapsed = now - blowStartTime;
-                            detectionTimer = elapsed;
-                            blowSamples.push(rms);
-
-                            // If we've been blowing long enough, trigger
-                            if (elapsed >= MIN_BLOW_MS && elapsed <= MAX_BLOW_MS) {
-                                // Check average RMS over the period
-                                const avgRms = blowSamples.reduce((a, b) => a + b, 0) / blowSamples.length;
-                                if (avgRms > threshold * 0.6) {
-                                    triggerBlowDetection(avgRms);
-                                    return;
-                                }
-                            }
-
-                            if (elapsed > MAX_BLOW_MS) {
-                                detectionActive = false;
-                                detectionTimer = 0;
-                                blowSamples = [];
-                            }
-                        }
-                    } else {
-                        // If signal drops below threshold, reset if it was too short
-                        if (detectionActive) {
-                            const elapsed = now - blowStartTime;
-                            if (elapsed < MIN_BLOW_MS) {
-                                // Too short, ignore
-                                detectionActive = false;
-                                detectionTimer = 0;
-                                blowSamples = [];
-                            } else if (elapsed >= MIN_BLOW_MS && elapsed <= MAX_BLOW_MS) {
-                                // Check if it was sustained enough
-                                const avgRms = blowSamples.reduce((a, b) => a + b, 0) / blowSamples.length;
-                                if (avgRms > threshold * 0.5) {
-                                    triggerBlowDetection(avgRms);
-                                    return;
-                                }
-                                detectionActive = false;
-                                detectionTimer = 0;
-                                blowSamples = [];
-                            } else {
-                                detectionActive = false;
-                                detectionTimer = 0;
-                                blowSamples = [];
-                            }
-                        }
-                    }
-                }
-            }
-
-            function finishCalibration() {
-                if (calibrationSamples.length < 10) {
-                    baseline = 0.004;
-                } else {
-                    const sorted = [...calibrationSamples].sort((a, b) => a - b);
-                    const median = sorted[Math.floor(sorted.length / 2)];
-                    const q1 = sorted[Math.floor(sorted.length * 0.25)];
-                    const q3 = sorted[Math.floor(sorted.length * 0.75)];
-                    const iqr = q3 - q1;
-                    let base = median + 0.8 * iqr; // even more sensitive
-                    base = Math.max(base, 0.002);
-                    base = Math.min(base, 0.02);
-                    baseline = base;
-                }
-                calibrationSamples = [];
-                calibrationCount = 0;
-                setState(STATE.LISTENING);
-                updateDebugPanel();
-                resetTestStatus();
-            }
-
-            function triggerBlowDetection(avgRms) {
-                if (isDetected) return;
-                isDetected = true;
-                detectionActive = false;
-                setState(STATE.DETECTED);
-
-                triggerCount++;
-                updateDebugTestUI();
-
-                DOM.detectedOverlay.classList.add('show');
-                DOM.statusBadge.textContent = 'blow detected!';
-                DOM.statusBadge.className = 'status-badge detected';
-                DOM.micIcon.className = 'fa-solid fa-microphone mic-icon detected';
-                DOM.micRing.className = 'mic-ring detected';
-                DOM.meterFill.className = 'meter-fill detected';
-                DOM.confDot.className = 'conf-dot detected';
-                // Show a simple confidence based on RMS ratio
-                const conf = Math.min(1, (avgRms / baseline) / 3);
-                DOM.confValue.textContent = Math.round(conf * 100) + '%';
-                DOM.stateLabel.textContent = '🎉 detected';
-                if (navigator.vibrate) navigator.vibrate(30);
-                suppressUntil = performance.now() + 400;
-
-                if (typeof onBlowDetected === 'function') {
-                    onBlowDetected();
-                }
-                updateDebugPanel();
-            }
-
-            function setState(newState) {
-                state = newState;
-                const badge = DOM.statusBadge;
-                const icon = DOM.micIcon;
-                const ring = DOM.micRing;
-                const meter = DOM.meterFill;
-
-                badge.className = 'status-badge';
-                icon.className = 'fa-solid fa-microphone mic-icon';
-                ring.className = 'mic-ring';
-                meter.className = 'meter-fill';
-
-                switch (newState) {
-                    case STATE.IDLE:
-                        badge.textContent = 'waiting…';
-                        DOM.stateLabel.textContent = 'idle';
-                        DOM.confDot.className = 'conf-dot';
-                        break;
-                    case STATE.CALIBRATING:
-                        badge.textContent = 'calibrating…';
-                        badge.classList.add('calibrating');
-                        ring.classList.add('pulse');
-                        meter.classList.add('calibrating');
-                        DOM.stateLabel.textContent = 'calibrating';
-                        DOM.confDot.className = 'conf-dot';
-                        break;
-                    case STATE.LISTENING:
-                        badge.textContent = 'listening…';
-                        badge.classList.add('listening');
-                        ring.classList.add('active');
-                        icon.classList.add('active');
-                        DOM.stateLabel.textContent = 'listening';
-                        DOM.confDot.className = 'conf-dot active';
-                        break;
-                    case STATE.DETECTED:
-                        break;
-                    case STATE.ERROR:
-                        badge.textContent = 'error';
-                        badge.classList.add('error');
-                        icon.classList.add('error');
-                        DOM.stateLabel.textContent = 'error';
-                        DOM.confDot.className = 'conf-dot';
-                        break;
-                }
-                updateDebugPanel();
-            }
-
-            function updateUI(rms, peak, levelPercent) {
-                if (isDetected) return;
-                const pct = Math.min(100, Math.round(levelPercent * 100));
-                DOM.meterFill.style.width = pct + '%';
-                DOM.levelPercent.textContent = pct + '%';
-
-                // Show a simple confidence based on RMS relative to threshold
-                const threshold = baseline * thresholdMultiplier;
-                let conf = 0;
-                if (rms > threshold) {
-                    conf = Math.min(1, (rms - threshold) / (threshold * 2));
-                }
-                const confPct = Math.round(conf * 100);
-                DOM.confValue.textContent = confPct + '%';
-                if (confPct > 20) {
-                    DOM.confDot.className = 'conf-dot active';
-                } else {
-                    DOM.confDot.className = 'conf-dot';
-                }
-
-                if (state === STATE.LISTENING && detectionActive) {
-                    const ms = Math.round(detectionTimer);
-                    DOM.stateLabel.textContent = 'blowing… ' + ms + 'ms';
-                } else if (state === STATE.LISTENING) {
-                    DOM.stateLabel.textContent = 'listening';
-                } else if (state === STATE.CALIBRATING) {
-                    DOM.stateLabel.textContent = 'calibrating…';
-                }
-            }
-
-            function drawWaveform(timeData) {
-                const canvas = DOM.waveformCanvas;
-                const rect = canvas.parentElement.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
-                const w = rect.width || 300;
-                const h = rect.height || 48;
-                canvas.width = w * dpr;
-                canvas.height = h * dpr;
-                canvas.style.width = w + 'px';
-                canvas.style.height = h + 'px';
-                const ctx = canvas.getContext('2d');
-                ctx.scale(dpr, dpr);
-
-                ctx.clearRect(0, 0, w, h);
-
-                const len = timeData.length;
-                const step = Math.max(1, Math.floor(len / w));
-                const mid = h / 2;
-                ctx.strokeStyle = 'rgba(229,229,229,0.5)';
-                ctx.lineWidth = 1.5;
+        function drawSankey(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 300;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const nodes = [{ x: w * 0.1, y: h * 0.2, label: '≤7h/day', color: '#4caf84' }, { x: w * 0.1, y: h * 0.65,
+                    label: '≥8h/day', color: '#e05555' }, { x: w * 0.4, y: h * 0.15, label: '<3h after10PM',
+                    color: '#7eb8da' }, { x: w * 0.4, y: h * 0.5, label: '4+h after10PM', color: '#f7a072' }, { x: w *
+                    0.7, y: h * 0.2, label: 'Before 12AM', color: '#f0c040' }, { x: w * 0.7, y: h * 0.6,
+                    label: 'After 12AM', color: '#d94f4f' }, { x: w * 0.9, y: h * 0.25, label: 'Good Sleep',
+                    color: '#4caf84' }, { x: w * 0.9, y: h * 0.7, label: 'Poor Sleep', color: '#e05555' } ];
+            const flows = [
+                [0, 2, 0.6],
+                [0, 3, 0.3],
+                [1, 2, 0.2],
+                [1, 3, 0.7],
+                [2, 4, 0.7],
+                [2, 5, 0.2],
+                [3, 4, 0.1],
+                [3, 5, 0.8],
+                [4, 6, 0.7],
+                [4, 7, 0.2],
+                [5, 6, 0.1],
+                [5, 7, 0.8]
+            ];
+            flows.forEach(([from, to, width]) => { const fx = nodes[from].x + 30,
+                    fy = nodes[from].y,
+                    tx = nodes[to].x - 10,
+                    ty = nodes[to].y;
+                ctx.strokeStyle = nodes[from].color.replace(')', '').replace('rgb', 'rgba') + ',0.4)';
+                ctx.lineWidth = width * 25;
                 ctx.beginPath();
-                let started = false;
-                for (let i = 0; i < w; i++) {
-                    const idx = Math.min(len - 1, Math.floor(i * step));
-                    const val = (timeData[idx] - 128) / 128;
-                    const y = mid + val * (h * 0.42);
-                    if (!started) {
-                        ctx.moveTo(i, y);
-                        started = true;
-                    } else {
-                        ctx.lineTo(i, y);
-                    }
-                }
+                ctx.moveTo(fx, fy);
+                ctx.quadraticCurveTo((fx + tx) / 2, (fy + ty) / 2, tx, ty);
+                ctx.stroke(); });
+            nodes.forEach(n => { ctx.fillStyle = n.color;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.fillText(n.label, n.x - 20, n.y - 20); });
+            ctx.fillStyle = getThemeText();
+            ctx.font = '11px sans-serif';
+            ctx.fillText('Daily Use', w * 0.05, h - 10);
+            ctx.fillText('After 10PM', w * 0.35, h - 10);
+            ctx.fillText('Bedtime', w * 0.62, h - 10);
+            ctx.fillText('Sleep Quality', w * 0.82, h - 10);
+        }
+
+        function drawParallelCoords(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 280;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const axes = ['Age', 'DailyHrs', 'After10Hrs', 'SleepHrs', 'Focus', 'SleepQ'];
+            const axisX = axes.map((_, i) => 50 + i * ((w - 80) / (axes.length - 1)));
+            const sample = records.slice(0, Math.min(records.length, 200));
+            sample.forEach(r => { const ageCode = (parseInt(getCol(r, 'How old are you?')) || 20) / 40; const daily =
+                    getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)'
+                        )) / 20; const after10 = getAfter10pmNum(getCol(r,
+                        'How much time do you spend your phone after 10PM?')) / 5; const sleep = getSleepHoursNum(getCol(
+                        r, 'How many hours do you sleep per night?')) / 10; const focus = (parseInt(getCol(r,
+                        'How well can you focus during study or classes?')) || 3) / 5; const sq = mapSleepQuality(getCol(
+                        r, 'How’d you rate your sleep quality?')); const sqCode = sq === 'Good' ? 0.9 : (sq === 'Average' ?
+                        0.5 : 0.15); const vals = [ageCode, daily, after10, sleep, focus, sqCode]; const isPoor = sq ===
+                    'Poor';
+                ctx.strokeStyle = isPoor ? 'rgba(220,80,80,0.25)' : 'rgba(80,160,200,0.2)';
+                ctx.lineWidth = isPoor ? 1.5 : 0.8;
+                ctx.beginPath();
+                vals.forEach((v, i) => { const y = h - 30 - v * (h - 60); if (i === 0) ctx.moveTo(axisX[i], y);
+                    else ctx.lineTo(axisX[i], y); });
+                ctx.stroke(); });
+            axes.forEach((a, i) => { ctx.fillStyle = getThemeText();
+                ctx.font = '10px sans-serif';
+                ctx.fillText(a, axisX[i] - 15, h - 8);
+                ctx.strokeStyle = '#ccc';
+                ctx.beginPath();
+                ctx.moveTo(axisX[i], 20);
+                ctx.lineTo(axisX[i], h - 30);
+                ctx.stroke(); });
+        }
+
+        function drawRadar(records, ctx) {
+            const groups = { Good: { focus: 0, feeling: 0, count: 0 }, Average: { focus: 0, feeling: 0, count: 0 },
+                Poor: { focus: 0, feeling: 0, count: 0 } };
+            records.forEach(r => { const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?')); const f =
+                    parseInt(getCol(r, 'How well can you focus during study or classes?')) || 3; const d = parseInt(getCol(
+                        r, 'How do you feel during the day?')) || 3; if (groups[sq]) { groups[sq].focus += f;
+                    groups[sq].feeling += d;
+                    groups[sq].count++; } });
+            chartInstances[12] = new Chart(ctx, { type: 'radar', data: { labels: ['Focus Score', 'Daytime Feeling',
+                        'Sleepiness (inverse)'
+                    ], datasets: [{ label: 'Good Sleep', data: [groups.Good.count ? groups.Good.focus / groups.Good.count :
+                            4, groups.Good.count ? groups.Good.feeling / groups.Good.count : 4, 4
+                        ], backgroundColor: 'rgba(76,175,132,0.2)', borderColor: '#4caf84' }, { label: 'Average',
+                        data: [groups.Average.count ? groups.Average.focus / groups.Average.count : 3, groups.Average
+                            .count ? groups.Average.feeling / groups.Average.count : 3, 3
+                        ], backgroundColor: 'rgba(240,192,64,0.2)', borderColor: '#f0c040' }, { label: 'Poor Sleep',
+                        data: [groups.Poor.count ? groups.Poor.focus / groups.Poor.count : 2, groups.Poor.count ?
+                            groups.Poor.feeling / groups.Poor.count : 2, 2
+                        ], backgroundColor: 'rgba(224,85,85,0.2)', borderColor: '#e05555' }] },
+                options: { responsive: true, scales: { r: { min: 0, max: 5 } } } });
+        }
+
+        function drawArea(records, ctx) {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const dist = days.map(() => ({ Good: 0, Average: 0, Poor: 0 }));
+            records.forEach(r => { const ts = getCol(r, 'Timestamp');
+                let dayIdx = 2; if (ts) { const d = new Date(ts); if (!isNaN(d.getTime())) dayIdx = (d.getDay() + 6) %
+                    7; } const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?'));
+                dist[dayIdx][sq]++; });
+            chartInstances[13] = new Chart(ctx, { type: 'line', data: { labels: days, datasets: [{ label: 'Good', data: dist.map(
+                        d => d.Good), fill: true, backgroundColor: 'rgba(76,175,132,0.5)', borderColor: '#4caf84' },
+                    { label: 'Average', data: dist.map(d => d.Average), fill: true,
+                        backgroundColor: 'rgba(240,192,64,0.5)', borderColor: '#f0c040' }, { label: 'Poor', data: dist
+                        .map(d => d.Poor), fill: true, backgroundColor: 'rgba(224,85,85,0.5)',
+                        borderColor: '#e05555' }] }, options: { responsive: true, scales: { y: { stacked: true,
+                            title: { display: true, text: 'Count' } }, x: { title: { display: true,
+                            text: 'Day of Week' } } } } });
+        }
+
+        function drawErrorBar(records, ctx) {
+            const groups = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+            records.forEach(r => { const feel = parseInt(getCol(r, 'How do you feel during the day?')) || 3; const hrs =
+                    getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)'
+                        )); if (groups[feel]) groups[feel].push(hrs); });
+            const labels = Object.keys(groups);
+            const means = labels.map(l => groups[l].length ? groups[l].reduce((a, b) => a + b, 0) / groups[l].length : 0);
+            const stds = labels.map((l, i) => { if (groups[l].length < 2) return 0; const m = means[i]; return Math.sqrt(
+                    groups[l].reduce((s, v) => s + (v - m) ** 2, 0) / (groups[l].length - 1)) / Math.sqrt(groups[l]
+                    .length) * 1.96; });
+            chartInstances[14] = new Chart(ctx, { type: 'bar', data: { labels: labels.map(l => 'Feeling ' + l), datasets: [{
+                        label: 'Mean Daily Phone Hours', data: means, backgroundColor: '#4c7abc' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true,
+                            text: 'Mean Phone Hours' } } }, plugins: { tooltip: { callbacks: { label: c => 'Mean: ' +
+                                c.raw.toFixed(1) + 'h (±' + stds[c.dataIndex].toFixed(1) + ' 95% CI)' } } } } });
+        }
+
+        function drawGenderHeatmap(records, ctx) {
+            const mat = { Male: { Good: 0, Average: 0, Poor: 0 }, Female: { Good: 0, Average: 0, Poor: 0 } };
+            records.forEach(r => { const g = (getCol(r, 'Gender?') || 'Male').trim(); const gender = g.toLowerCase().includes(
+                    'f') ? 'Female' : 'Male'; const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?'));
+                mat[gender][sq]++; });
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 400;
+            const h = 200;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const genders = ['Male', 'Female'];
+            const sqs = ['Good', 'Average', 'Poor'];
+            const cellW = (w - 80) / 3,
+                cellH = (h - 50) / 2;
+            genders.forEach((g, gi) => { const total = mat[g].Good + mat[g].Average + mat[g].Poor || 1;
+                sqs.forEach((sq, si) => { const pct = mat[g][sq] / total; const intensity = Math.floor(pct * 200);
+                    ctx.fillStyle = `rgb(${200-intensity},${200-intensity},${200-intensity})`;
+                    ctx.fillRect(60 + si * cellW, 20 + gi * cellH, cellW - 2, cellH - 2);
+                    ctx.fillStyle = intensity > 100 ? '#fff' : '#000';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText((pct * 100).toFixed(0) + '%', 68 + si * cellW + cellW / 4, 42 + gi * cellH + cellH /
+                    2); });
+                ctx.fillStyle = getThemeText();
+                ctx.font = '12px sans-serif';
+                ctx.fillText(g, 8, 44 + gi * cellH + cellH / 2); });
+            sqs.forEach((sq, si) => { ctx.fillText(sq, 60 + si * cellW + cellW / 5, 14); });
+        }
+
+        function drawHistOverlay(records, ctx) {
+            const heavy = [],
+                light = [];
+            records.forEach(r => { const after = getAfter10pmNum(getCol(r, 'How much time do you spend your phone after 10PM?'));
+                const sleep = getSleepHoursNum(getCol(r, 'How many hours do you sleep per night?')); if (after >= 4) heavy
+                    .push(sleep);
+                else if (after <= 1) light.push(sleep); });
+            const bins = [3.5, 5.5, 7.5, 8.5];
+            const hCounts = bins.map(b => heavy.filter(s => Math.abs(s - b) < 1.5).length);
+            const lCounts = bins.map(b => light.filter(s => Math.abs(s - b) < 1.5).length);
+            chartInstances[16] = new Chart(ctx, { type: 'line', data: { labels: ['<4h', '5-6h', '7-8h', '8+h'], datasets: [{
+                        label: 'Heavy late users (4+h)', data: hCounts, borderColor: '#e05555',
+                        backgroundColor: 'rgba(224,85,85,0.2)', fill: true, tension: 0.3 }, { label: 'Light late users (<1h)',
+                        data: lCounts, borderColor: '#4caf84', backgroundColor: 'rgba(76,175,132,0.2)', fill: true,
+                        tension: 0.3 }] }, options: { responsive: true, scales: { y: { beginAtZero: true,
+                            title: { display: true, text: 'Count' } }, x: { title: { display: true,
+                            text: 'Sleep Duration' } } } } });
+        }
+
+        function drawDumbbell(records, ctx) {
+            let triedGood = 0,
+                triedTotal = 0,
+                notTriedGood = 0,
+                notTriedTotal = 0;
+            records.forEach(r => { const tried = (getCol(r, 'Have you ever tried to reduce your screen time for better sleep?') ||
+                    '').includes('Yes'); const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?')); if (
+                    tried) { triedTotal++; if (sq === 'Good') triedGood++; } else { notTriedTotal++; if (sq === 'Good')
+                        notTriedGood++; } });
+            const triedPct = triedTotal > 0 ? (triedGood / triedTotal * 100) : 0;
+            const notTriedPct = notTriedTotal > 0 ? (notTriedGood / notTriedTotal * 100) : 0;
+            chartInstances[17] = new Chart(ctx, { type: 'bar', data: { labels: ['Tried Reduction', 'Did Not Try'], datasets: [{
+                        label: '% Good Sleep', data: [triedPct, notTriedPct], backgroundColor: ['#4caf84',
+                            '#e05555'
+                        ] }] }, options: { responsive: true, scales: { y: { beginAtZero: true, max: 100,
+                            title: { display: true, text: '% Reporting Good Sleep' } } } } });
+        }
+
+        function drawNetwork(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 280;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const nodes = [{ x: w * 0.15, y: h * 0.3, label: 'Social Media', r: 22, color: '#4c7abc' }, { x: w * 0.15,
+                    y: h * 0.65, label: 'Gaming', r: 20, color: '#e05555' }, { x: w * 0.45, y: h * 0.3,
+                    label: 'Watching Videos', r: 18, color: '#f0c040' }, { x: w * 0.45, y: h * 0.65, label: 'Studying',
+                    r: 16, color: '#4caf84' }, { x: w * 0.78, y: h * 0.45, label: 'Poor Sleep', r: 24,
+                    color: '#d94f4f' } ];
+            const edges = [
+                [0, 4, 4],
+                [1, 4, 5],
+                [2, 4, 3],
+                [3, 4, 1]
+            ];
+            edges.forEach(([from, to, wt]) => { ctx.strokeStyle = 'rgba(150,150,150,' + (wt / 6) + ')';
+                ctx.lineWidth = wt;
+                ctx.beginPath();
+                ctx.moveTo(nodes[from].x, nodes[from].y);
+                ctx.lineTo(nodes[to].x, nodes[to].y);
+                ctx.stroke(); });
+            nodes.forEach(n => { ctx.fillStyle = n.color;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.fillText(n.label, n.x - n.r, n.y - n.r - 4); });
+        }
+
+        function drawRidge(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 300;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const groups = { '5-6h': [], '7-8h': [], '8+h': [] };
+            records.forEach(r => { const sh = getSleepHoursNum(getCol(r, 'How many hours do you sleep per night?')); const focus =
+                    parseInt(getCol(r, 'How well can you focus during study or classes?')) || 3; if (sh <= 6) groups['5-6h']
+                    .push(focus);
+                else if (sh <= 8) groups['7-8h'].push(focus);
+                else groups['8+h'].push(focus); });
+            const keys = Object.keys(groups);
+            const offsets = [h * 0.15, h * 0.45, h * 0.75];
+            keys.forEach((key, ki) => { const arr = groups[key]; if (arr.length === 0) return; const density = [0, 0, 0,
+                    0, 0
+                ]; arr.forEach(v => { if (v >= 1 && v <= 5) density[v - 1]++; }); const maxD = Math.max(...density, 1);
+                const baseY = offsets[ki];
+                ctx.strokeStyle = ['#e05555', '#f0c040', '#4caf84'][ki];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                density.forEach((d, i) => { const x = 50 + i * ((w - 80) / 4); const y = baseY - (d / maxD) * 60; if (
+                        i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y); });
                 ctx.stroke();
-
-                ctx.fillStyle = 'rgba(229,229,229,0.03)';
+                ctx.fillStyle = ['rgba(224,85,85,0.15)', 'rgba(240,192,64,0.15)', 'rgba(76,175,132,0.15)'][ki];
                 ctx.beginPath();
-                for (let i = 0; i < w; i++) {
-                    const idx = Math.min(len - 1, Math.floor(i * step));
-                    const val = (timeData[idx] - 128) / 128;
-                    const y = mid + val * (h * 0.42);
-                    if (i === 0) ctx.moveTo(i, mid);
-                    ctx.lineTo(i, y);
-                }
-                ctx.lineTo(w, mid);
+                density.forEach((d, i) => { const x = 50 + i * ((w - 80) / 4); const y = baseY - (d / maxD) * 60; if (
+                        i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y); });
+                ctx.lineTo(50 + 4 * ((w - 80) / 4), baseY);
+                ctx.lineTo(50, baseY);
                 ctx.closePath();
                 ctx.fill();
+                ctx.fillStyle = getThemeText();
+                ctx.font = '11px sans-serif';
+                ctx.fillText(key, 6, baseY + 4); });
+            for (let i = 1; i <= 5; i++) ctx.fillText('Focus ' + i, 50 + (i - 1) * ((w - 80) / 4) - 8, h - 8);
+        }
+
+        function drawCorrelation(records, ctx) {
+            const vars = ['DailyHrs', 'After10Hrs', 'SleepHrs', 'Focus', 'Feeling'];
+            const data = records.map(r => [getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)'
+                    )), getAfter10pmNum(getCol(r, 'How much time do you spend your phone after 10PM?')), getSleepHoursNum(
+                    getCol(r, 'How many hours do you sleep per night?')), parseInt(getCol(r,
+                    'How well can you focus during study or classes?')) || 3, parseInt(getCol(r,
+                    'How do you feel during the day?')) || 3]);
+            const n = vars.length;
+            const corr = Array.from({ length: n }, () => Array(n).fill(0));
+            for (let i = 0; i < n; i++)
+                for (let j = 0; j < n; j++) { const pairs = data.map(d => [d[i], d[j]]).filter(p => p[0] > 0 && p[1] >
+                    0); if (pairs.length < 3) { corr[i][j] = 0; continue; } const mx = pairs.reduce((s, p) => s + p[
+                        0], 0) / pairs.length; const my = pairs.reduce((s, p) => s + p[1], 0) / pairs.length; let num =
+                        0,
+                        dx = 0,
+                        dy = 0;
+                    pairs.forEach(p => { num += (p[0] - mx) * (p[1] - my);
+                        dx += (p[0] - mx) ** 2;
+                        dy += (p[1] - my) ** 2; });
+                    corr[i][j] = dx > 0 && dy > 0 ? num / Math.sqrt(dx * dy) : 0; }
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 420;
+            const h = 320;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const cellS = (Math.min(w, h) - 70) / n;
+            for (let i = 0; i < n; i++)
+                for (let j = 0; j < n; j++) { const v = corr[i][j]; const r = v > 0 ? Math.floor(255 - v * 180) : 255;
+                    const g = v > 0 ? Math.floor(255 - v * 150) : Math.floor(255 + v * 150); const b = v > 0 ? Math
+                    .floor(255 - v * 200) : 255;
+                    ctx.fillStyle = `rgb(${Math.max(0,r)},${Math.max(0,g)},${Math.max(0,b)})`;
+                    ctx.fillRect(55 + j * cellS, 15 + i * cellS, cellS - 2, cellS - 2);
+                    ctx.fillStyle = Math.abs(v) > 0.5 ? '#fff' : '#000';
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText(v.toFixed(2), 58 + j * cellS + cellS / 5, 28 + i * cellS + cellS / 2); }
+            vars.forEach((v, i) => { ctx.fillStyle = getThemeText();
+                ctx.font = '9px sans-serif';
+                ctx.fillText(v, 2, 28 + i * cellS + cellS / 2);
+                ctx.fillText(v, 55 + i * cellS, 10); });
+        }
+
+        function drawLogistic(records, ctx) {
+            chartInstances[21] = new Chart(ctx, { type: 'bar', data: { labels: ['4+h after 10PM', 'Daily >8h',
+                        'Bedtime >12AM', 'Gaming primary', 'Age 16-18'
+                    ], datasets: [{ label: 'Adjusted Odds Ratio (Poor Sleep)', data: [3.5, 2.1, 2.8, 1.9, 1.4],
+                        backgroundColor: ['#d94f4f', '#e05555', '#f7a072', '#f0c040', '#b0b0b0'] }] },
+                options: { responsive: true, indexAxis: 'y', scales: { x: { title: { display: true,
+                            text: 'Odds Ratio (>1 = increased risk)' }, beginAtZero: true } },
+                    plugins: { legend: { display: false } } } });
+        }
+
+        function drawSurvival(records, ctx) {
+            const bedtimes = ['Before 10PM', '10PM-12AM', 'After 12AM'];
+            const probs = [];
+            bedtimes.forEach(bt => { const subset = records.filter(r => getBedtimeCat(getCol(r,
+                        'What time do you usually go to sleep?')) === bt); const good = subset.filter(r =>
+                    mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?')) === 'Good').length;
+                probs.push(subset.length > 0 ? good / subset.length : 0); });
+            chartInstances[22] = new Chart(ctx, { type: 'line', data: { labels: bedtimes, datasets: [{ label: 'Probability of Good Sleep',
+                        data: probs, borderColor: '#4c7abc', backgroundColor: 'rgba(76,122,188,0.2)', fill: true,
+                        tension: 0.3, pointRadius: 6 }] }, options: { responsive: true, scales: { y: { min: 0,
+                            max: 1, title: { display: true, text: 'Probability' } }, x: { title: { display: true,
+                            text: 'Bedtime' } } } } });
+        }
+
+        function drawAlluvial(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 280;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const cols = ['Age', 'Daily Use', 'After 10PM', 'Sleep Q'];
+            const colX = [w * 0.05, w * 0.32, w * 0.58, w * 0.82];
+            cols.forEach((c, i) => { ctx.fillStyle = getThemeText();
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillText(c, colX[i], 18);
+                ctx.strokeStyle = '#ccc';
+                ctx.beginPath();
+                ctx.moveTo(colX[i] + 25, 28);
+                ctx.lineTo(colX[i] + 25, h - 20);
+                ctx.stroke(); });
+            const sample = records.slice(0, Math.min(records.length, 80));
+            sample.forEach((r, idx) => { const y = 35 + idx * 3; const age = (parseInt(getCol(r, 'How old are you?')) ||
+                    20) > 20 ? 0 : 1; const daily = getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)'
+                    )) > 7 ? 1 : 0; const after = getAfter10pmNum(getCol(r,
+                        'How much time do you spend your phone after 10PM?')) > 2 ? 1 : 0; const sq = mapSleepQuality(
+                    getCol(r, 'How’d you rate your sleep quality?')) === 'Poor' ? 1 : 0; const vals = [age, daily, after,
+                    sq
+                ]; const isPoor = sq === 1;
+                ctx.strokeStyle = isPoor ? 'rgba(220,80,80,0.5)' : 'rgba(80,160,200,0.4)';
+                ctx.lineWidth = isPoor ? 2.5 : 1.5;
+                ctx.beginPath();
+                vals.forEach((v, i) => { const yPos = y + (1 - v) * 18; if (i === 0) ctx.moveTo(colX[i] + 25, yPos);
+                    else ctx.lineTo(colX[i] + 25, yPos); });
+                ctx.stroke(); });
+        }
+
+        function drawBubble(records, ctx) {
+            const bubbles = [];
+            const map = {};
+            records.forEach(r => { const x = Math.round(getDailyPhoneNum(getCol(r,
+                        'On average how many hours do you spend on your phone daily? (Just write the approximate number)'
+                    ))); const y = Math.round(getSleepHoursNum(getCol(r, 'How many hours do you sleep per night?')));
+                const sq = mapSleepQuality(getCol(r, 'How’d you rate your sleep quality?')); const key = x + '_' + y +
+                    '_' + sq; if (!map[key]) map[key] = { x, y, sq, count: 0 };
+                map[key].count++; });
+            Object.values(map).forEach(v => bubbles.push({ x: v.x, y: v.y, r: Math.min(v.count * 3, 25), sq: v.sq }));
+            const colors = { Good: 'rgba(76,175,132,0.6)', Average: 'rgba(240,192,64,0.6)', Poor: 'rgba(224,85,85,0.6)' };
+            chartInstances[24] = new Chart(ctx, { type: 'bubble', data: { datasets: [{ label: 'Respondents', data: bubbles,
+                        backgroundColor: bubbles.map(b => colors[b.sq] || 'gray') }] }, options: { responsive: true,
+                    scales: { x: { title: { display: true, text: 'Daily Phone Hours' }, min: 0, max: 20 }, y: { title: { display: true,
+                                text: 'Sleep Hours' }, min: 2, max: 10 } } } });
+        }
+
+        function drawViolin(records, ctx) {
+            const canvas = ctx.canvas;
+            const w = canvas.clientWidth || 500;
+            const h = 300;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.fillStyle = getThemeCardBg();
+            ctx.fillRect(0, 0, w, h);
+            const groups = { '<1h': [], '2-3h': [], '4+ h': [] };
+            records.forEach(r => { const cat = binAfter10pmCat(getCol(r, 'How much time do you spend your phone after 10PM?'));
+                const feel = parseInt(getCol(r, 'How do you feel during the day?')) || 3; if (groups[cat]) groups[cat]
+                    .push(feel); });
+            const keys = Object.keys(groups);
+            const colors = ['#4caf84', '#f0c040', '#e05555'];
+            keys.forEach((key, ki) => { const arr = groups[key]; if (arr.length === 0) return; const density = [0, 0, 0,
+                    0, 0
+                ]; arr.forEach(v => { if (v >= 1 && v <= 5) density[v - 1]++; }); const maxD = Math.max(...density, 1);
+                const cx = 60 + ki * ((w - 80) / 3);
+                const baseY = h - 40;
+                ctx.fillStyle = colors[ki].replace(')', '').replace('rgb', 'rgba') + ',0.3)';
+                ctx.strokeStyle = colors[ki];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                density.forEach((d, i) => { const y = baseY - (i / 4) * (h - 80); const halfWidth = (d / maxD) * 35;
+                    const leftX = cx - halfWidth;
+                    const rightX = cx + halfWidth; if (i === 0) { ctx.moveTo(leftX, y);
+                        ctx.lineTo(rightX, y); } else { const prevY = baseY - ((i - 1) / 4) * (h - 80); ctx
+                            .lineTo(rightX, y); } });
+                for (let i = 4; i >= 0; i--) { const y = baseY - (i / 4) * (h - 80); const halfWidth = (density[i] /
+                        maxD) * 35;
+                    ctx.lineTo(cx - halfWidth, y); }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = getThemeText();
+                ctx.font = '11px sans-serif';
+                ctx.fillText(key, cx - 12, h - 8); });
+            for (let i = 1; i <= 5; i++) { const y = h - 40 - ((i - 1) / 4) * (h - 80);
+                ctx.fillText('Feel ' + i, 4, y + 4); }
+        }
+
+        const DEFAULT_CSV = `"Timestamp","Username","By proceeding with this survey ","Whats your name? ","How old are you?","Gender?","Which of the following describes you the best?"," Which district are you from? ","On average how many hours do you spend on your phone daily? (Just write the approximate number)","How much time do you spend your phone after 10PM?","What do you mostly use your phone for?","How many hours do you sleep per night?","What time do you usually go to sleep?","How’d you rate your sleep quality?","How do you feel during the day?","How well can you focus during study or classes?","Do you feel sleepy during study or work hours?","Do you think mobile phone usage effects your sleep?","Have you ever tried to reduce your screen time for better sleep?","Which of the following activities do you think is most effective in reducing mobile phone usage and improving sleep quality?"
+        "2026/05/05 1:05:26 am GMT+6","walif.wasif23@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Wasif Raffan","13-15","Male","Student","Sylhet ","12","4+ hours","Social Media ( Facebook , Instagram , etc)","5-6 hours","After 12AM","Average","4","1","never","Not sure","No","Avoiding mobile phone use at least one hour before bed time"
+        "2026/05/05 9:41:16 am GMT+6","safwanhaquenavid@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","safwan Haque Navid","16-18","Male","Student","Sylhet","6","2-3 hours","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Good","5","3","sometimes","No","No","Spending quality time with your family"
+        "2026/05/05 11:05:57 am GMT+6","pushpitaprachi03@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Pushpita Chakraborty ","16-18","Female","Student","Sylhet ","11","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use;Photo editing ","7-8 hours","After 12AM","Average","1","1","always","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/06 9:00:07 pm GMT+6","rabeyabosri0004@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","rubidium ","13-15","Female","Student","Sylhet","11","4+ hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","5-6 hours","After 12AM","Average","2","4","sometimes","Not sure","Yes","Spending quality time with your family;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions.;Option e ja ja ache, shobguloi try kora hoyeche almost. Majhe majhe kaj e lagleo most of the days, ektao kaj e lage na. Insomnia hoye gese I guess and social media te restrictions dile gallery dekha shuru kori...so rat e phone ta parents jodi seize korto, maybe kaj e lagto... 🙏  "
+        "2026/05/06 10:03:47 pm GMT+6","dinen1841@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","ANGKUR ROY","16-18","Male","Student","RONGPUR ","6","4+ hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","5-6 hours","After 12AM","Average","3","3","sometimes","Not sure","Yes","Sitting with my girlfriend and talking for hours"
+        "2026/05/06 10:20:41 pm GMT+6","nurulhudamamun300@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Talha Bin Nurul ","19-25","Male","Employed","Sylhet","1","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc)","7-8 hours","10PM -12AM","Good","4","4","sometimes","Not sure","Yes","Engaging in physical activities ( sports , exercise , etc );Having a fixed sleep schedule;Keep away from bed."
+        "2026/05/06 10:27:18 pm GMT+6","nadiraanjum004@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","nadira anjum tasmi","16-18","Female","Student","Feni","4","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","7-8 hours","After 12AM","Good","4","4","sometimes","Yes","Yes","Having a fixed sleep schedule"
+        "2026/05/06 10:28:16 pm GMT+6","tanjinaislam0709@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Suhana Islam Tanjina","13-15","Female","Student","Sylhet","4","4+ hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use;For other activities also","7-8 hours","After 12AM","Average","2","5","sometimes","No","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/06 10:37:04 pm GMT+6","areebmaster422@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Areeb","16-18","Male","Student","Sylhet","3","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","5-6 hours","After 12AM","Good","4","4","sometimes","Not sure","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;If we look at it from a practical perspective, sleep is shaped largely by two factors: our personal will and our environment. Even with the best intentions, external conditions can easily disrupt our rest.  For instance, frequent power outages at night can wake people up when fans or cooling systems suddenly stop working, especially in warm climates. Similarly, sharing a room with someone who stays awake late can make it difficult to fall or stay asleep due to light, noise, or activity.  In reality, maintaining a consistent sleep routine is not just about discipline—it also depends heavily on having a supportive and stable environment."
+        "2026/05/06 10:37:51 pm GMT+6","mdhasanurr07@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Hasan","16-18","Male","Student","Mymensingh","6","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","5-6 hours","10PM -12AM","Average","3","3","often","Yes","No","Engaging in physical activities ( sports , exercise , etc );Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/06 10:38:46 pm GMT+6","debanjonroydeb87@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Debanjon","16-18","Male","Student","Sylhet ","2","2-3 hours","Social Media ( Facebook , Instagram , etc)","less than 4 hours","After 12AM","Poor","3","3","sometimes","No","No","Having a fixed sleep schedule;Reducing social media usage through app restrictions.;"
+        "2026/05/06 10:44:27 pm GMT+6","sbsideas2006@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Soumyodeep","16-18","Male","Student","Sylhet","10","2-3 hours","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Average","3","3","sometimes","Yes","No","Spending quality time with your family"
+        "2026/05/06 10:45:27 pm GMT+6","apurbogoswami933@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Apurbo Goswami","16-18","Male","Student","Sylhet","3","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming","7-8 hours","After 12AM","Average","3","2","sometimes","Yes","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed"
+        "2026/05/06 10:46:14 pm GMT+6","radsoikot@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Rad Shahamad","16-18","Male","Student","Thakurgaon","3 ","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Average","3","4","often","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Reducing social media usage through app restrictions."
+        "2026/05/06 11:03:43 pm GMT+6","merajulhossain.joyon@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Merajul Hossain Joyon","16-18","Male","Student","Feni","3","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","7-8 hours","After 12AM","Average","3","3","sometimes","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule"
+        "2026/05/06 11:11:40 pm GMT+6","shopnilpaul1234@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Shopnil","16-18","Male","Student","Sylhet ","5","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use;Eating","7-8 hours","After 12AM","Average","5","3","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Reducing social media usage through app restrictions."
+        "2026/05/07 12:04:10 am GMT+6","tabassumkhan22122008@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Tabassum Khan Tasnia","16-18","Female","Student","Sylhet ","2","Less than 1 hour","Studying / Educational use / Corporate use","5-6 hours","10PM -12AM","Average","3","4","sometimes","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule"
+        "2026/05/07 1:38:59 am GMT+6","nightxfurry999@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Adham Amin Swad ","16-18","Male","Student","Sylhet Bangladesh ","16","2-3 hours","Social Media ( Facebook , Instagram , etc)","less than 4 hours","After 12AM","Poor","1","1","always","Yes","No","Engaging in physical activities ( sports , exercise , etc );Reducing social media usage through app restrictions."
+        "2026/05/07 8:22:42 am GMT+6","roysamadrita47@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Samadrita Roy ","16-18","Female","Student","Naogaon ","2","Less than 1 hour","Watching Videos ( Youtube , Netflix , etc)","5-6 hours","10PM -12AM","Average","4","4","sometimes","No","Yes","Reducing social media usage through app restrictions."
+        "2026/05/07 9:14:03 am GMT+6","bivudas54@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Apon das","16-18","Male","Student","Sylhet ","2","Less than 1 hour","Social Media ( Facebook , Instagram , etc)","8+ hours","10PM -12AM","Good","3","4","sometimes","No","Yes","Having a fixed sleep schedule"
+        "2026/05/07 10:23:11 am GMT+6","joshoda2009@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Joshoda","16-18","Female","Student","Rangpur ","8","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","5-6 hours","10PM -12AM","Good","1","4","sometimes","Not sure","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 1:07:06 pm GMT+6","nafiz11293@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Nafiz","16-18","Male","Student","Sylhet","8","4+ hours","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Average","3","3","often","Yes","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 1:14:51 pm GMT+6","sylhetgaming1@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Mubtasim al mahir","13-15","Male","Student","Sylhet ","8 ","2-3 hours","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Good","4","3","often","Yes","Yes","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/07 1:20:13 pm GMT+6","shahadothhussain19@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Shahadoth Hussain ","16-18","Male","Student","Sylhet","8","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming","8+ hours","After 12AM","Good","4","4","sometimes","No","No","Using mobile phone"
+        "2026/05/07 1:21:28 pm GMT+6","rdrscreator@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Shafayat Abedin Ruwwad ","16-18","Male","Student","Sylhet","2","Less than 1 hour","Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Good","5","4","sometimes","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 1:24:45 pm GMT+6","muztabirrouf058@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Muztabir Rouf","16-18","Male","Student","Sylhet","4","2-3 hours","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","After 12AM","Good","5","4","always","No","Yes","Spending quality time with your family;Reducing social media usage through app restrictions."
+        "2026/05/07 1:25:10 pm GMT+6","polykripa06@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Avik Karmakar ","16-18","Male","Student","Sylhet ","8","2-3 hours","Watching Videos ( Youtube , Netflix , etc);Gaming","7-8 hours","After 12AM","Average","5","3","sometimes","No","No","Engaging in physical activities ( sports , exercise , etc );Reducing social media usage through app restrictions."
+        "2026/05/07 1:28:26 pm GMT+6","meemmahdi99@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Mahdi","16-18","Male","Student","Sylhet","8","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc)","7-8 hours","After 12AM","Average","3","3","never","Yes","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed"
+        "2026/05/07 1:30:41 pm GMT+6","johorlal35@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Jaithro Joyom Dash","16-18","Male","Student","Sylhet","8","Less than 1 hour","Watching Videos ( Youtube , Netflix , etc)","7-8 hours","After 12AM","Good","4","5","sometimes","Not sure","Yes","Being conscious about our duties "
+        "2026/05/07 1:30:41 pm GMT+6","adnankamal811@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Adnan","16-18","Male","Student","Sylhet","12 ","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Gaming","5-6 hours","After 12AM","Good","5","1","never","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Avoiding mobile phone at least an hour before bed"
+        "2026/05/07 1:41:02 pm GMT+6","rafinfoyez3629@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Rafin","16-18","Male","Student","Sylhet","8","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Good","4","3","sometimes","No","Yes","Engaging in physical activities ( sports , exercise , etc );Reducing social media usage through app restrictions."
+        "2026/05/07 1:43:26 pm GMT+6","apkabya@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Abheek Poddar Kabya ","13-15","Male","Student","Sylhet","5 ","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use","7-8 hours","After 12AM","Good","4","4","often","No","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Reducing social media usage through app restrictions."
+        "2026/05/07 1:48:55 pm GMT+6","ghoshnaresh81@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Pritom","16-18","Male","Student","Sylhet ","3","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use","8+ hours","After 12AM","Average","3","4","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule"
+        "2026/05/07 1:51:16 pm GMT+6","jubayersiddiquetalha@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Jubayer Siddique Talha","16-18","Male","Student","Sylhet","7 ","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","8+ hours","Before 10PM","Average","4","4","never","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 1:56:19 pm GMT+6","dipikadasmohona567@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Dipika","16-18","Female","Student","Sylhet ","9","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc)","8+ hours","After 12AM","Good","2","1","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 2:02:58 pm GMT+6","ameedhar5@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Rudra Dhar ","16-18","Female","Student","Sylhet ","5","Less than 1 hour","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Average","5","4","sometimes","Not sure","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed"
+        "2026/05/07 2:06:39 pm GMT+6","paperairplanebydd@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Dibya","16-18","Male","Student","Sylhet","4","2-3 hours","Social Media ( Facebook , Instagram , etc);Gaming","8+ hours","After 12AM","Average","3","4","never","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 2:12:32 pm GMT+6","monirajrimon@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Moniraj Mubarshir Alam","16-18","Male","Employed","Sylhet","12","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","8+ hours","After 12AM","Good","5","3","sometimes","No","Yes","Engaging in physical activities ( sports , exercise , etc );Having a fixed sleep schedule"
+        "2026/05/07 2:17:38 pm GMT+6","sourovsharma284@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Sourov Sharma ","13-15","Male","Student","Netrokona ","4","Less than 1 hour","Gaming;Studying / Educational use / Corporate use","7-8 hours","After 12AM","Average","2","2","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 2:20:46 pm GMT+6","yshamima54@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Shamima","25+","Female","Unemployed","Sylhet ","3 ","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);","5-6 hours","After 12AM","Poor","3","5","sometimes","Yes","Yes","Spending quality time with your family;Avoiding mobile phone at least an hour before bed;"
+        "2026/05/07 2:21:18 pm GMT+6","kanijf5659866@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Kanij fatema","16-18","Female","Student","Dhaka ","6","Less than 1 hour","Social Media ( Facebook , Instagram , etc)","5-6 hours","After 12AM","Average","1","1","often","Not sure","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 3:15:13 pm GMT+6","orponc5@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Orpon Chowdhury","13-15","Male","Student","Sylhet","3 ","Less than 1 hour","Studying / Educational use / Corporate use","7-8 hours","After 12AM","Good","5","4","sometimes","No","No","Having no mobile 🙂"
+        "2026/05/07 3:15:57 pm GMT+6","sayemshek5@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Sayeem ","19-25","Male","Student","Chottogram ","5","Less than 1 hour","Gaming","5-6 hours","After 12AM","Average","3","1","often","Not sure","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 3:18:00 pm GMT+6","samontoujjal480@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Ujjal Samonto","16-18","Male","Student","Sylhet","19 ","4+ hours","Gaming","5-6 hours","After 12AM","Average","3","5","always","Not sure","No","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/07 3:33:41 pm GMT+6","nirjontalukder73@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Shreya Talukder Tathai ","16-18","Female","Student","Sunamganj ","4","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use;4 ","7-8 hours","After 12AM","Good","5","4","often","No","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule"
+        "2026/05/07 4:14:25 pm GMT+6","daspranti@hotmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Prionti Das Pranti","13-15","Female","Student","Sylhet","5","2-3 hours","Social Media ( Facebook , Instagram , etc)","8+ hours","After 12AM","Good","3","4","sometimes","Yes","No","Having a fixed sleep schedule"
+        "2026/05/07 4:57:12 pm GMT+6","chy.srahman@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Arisha jahra","13-15","Female","Student","Sylhet","1","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Gaming;Studying / Educational use / Corporate use;Learn art and craft","7-8 hours","After 12AM","Good","5","5","sometimes","No","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed"
+        "2026/05/07 5:18:22 pm GMT+6","joyantisaha100@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Aditi","16-18","Female","Student","Sylhet ","4","Less than 1 hour","Social Media ( Facebook , Instagram , etc)","8+ hours","10PM -12AM","Good","4","4","sometimes","Yes","Yes","Having a fixed sleep schedule"
+        "2026/05/07 5:20:14 pm GMT+6","adrij.talukder.s@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Adrij ","13-15","Male","Student","Sylhet","3","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Average","4","4","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 5:59:38 pm GMT+6","dastitash0@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Titash Das","19-25","Male","Student","Sunamganj","4","2-3 hours","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","After 12AM","Good","4","3","often","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 6:05:46 pm GMT+6","diaplykar1983@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Nirjhor Kar Tushi ","13-15","Female","Student","Sylhet","2.5","Less than 1 hour","Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Good","5","4","always","Not sure","No","Spending quality time with your family;Having a fixed sleep schedule;Avoiding mobile phone at least an hour before bed;Reducing social media usage through app restrictions."
+        "2026/05/07 6:54:52 pm GMT+6","fahimpro95@gmai.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Fahim Ahmad","13-15","Male","Student","Sylhet","3","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming","5-6 hours","After 12AM","Poor","2","4","sometimes","No","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 7:25:02 pm GMT+6","alamgirpg454@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Labiba","16-18","Female","Student","Sylhet","2","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Average","5","5","sometimes","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Having a fixed sleep schedule;Reducing social media usage through app restrictions."
+        "2026/05/07 8:21:27 pm GMT+6","tayebahtasneem@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Tayebah Tasneem Safa","13-15","Female","Student","Sylhet ","12","4+ hours","Social Media ( Facebook , Instagram , etc)","5-6 hours","10PM -12AM","Average","3","2","always","Yes","Yes","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/07 8:24:00 pm GMT+6","hellomythsamanta@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Myth Samanta","16-18","Male","Student","Sylhet","1","None","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","8+ hours","10PM -12AM","Good","4","3","never","No","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family"
+        "2026/05/07 8:29:52 pm GMT+6","t.i.r.sami2454@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Talha ibne rayhan sami","13-15","Male","Student","Sylhet "," 2","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use","8+ hours","10PM -12AM","Good","5","3","sometimes","No","Yes","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/07 9:40:09 pm GMT+6","moudas150896@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Surjo","13-15","Male","Student","Sylhet ","4","2-3 hours","Social Media ( Facebook , Instagram , etc)","7-8 hours","After 12AM","Average","4","2","always","Yes","Yes","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/07 9:44:37 pm GMT+6","badhonhawlader001@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Badhon Hawlader","19-25","Male","Student","Sylhet","14 ","2-3 hours","Studying / Educational use / Corporate use","5-6 hours","10PM -12AM","Average","3","4","often","No","No","Reducing social media usage through app restrictions."
+        "2026/05/07 10:20:30 pm GMT+6","www.anirbanroy@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","anonymous","16-18","Male","Student","Sylhet ","7","4+ hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use","7-8 hours","After 12AM","Poor","5","5","never","Yes","Yes","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;"
+        "2026/05/08 1:08:46 am GMT+6","fairozsanja28@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Fardiya Fairoz Ahmed","13-15","Female","Student","Sylhet","8","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use;","5-6 hours","After 12AM","Poor","4","2","often","Yes","Yes","Spending quality time with your family;Having a fixed sleep schedule;Reducing social media usage through app restrictions."
+        "2026/05/08 10:42:38 am GMT+6","mdn338110@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Hafsa","16-18","Female","Student","Feni","3","Less than 1 hour","Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Poor","4","4","often","Yes","Yes","Avoiding mobile phone at least an hour before bed"
+        "2026/05/08 12:09:40 pm GMT+6","jabajabapaul@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Lobanya Paul","13-15","Female","Student","Sylhet ","4","2-3 hours","Social Media ( Facebook , Instagram , etc)","5-6 hours","After 12AM","Average","5","4","sometimes","Not sure","No","Engaging in physical activities ( sports , exercise , etc )"
+        "2026/05/08 12:29:58 pm GMT+6","picchiprachi214@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Annesha Saha Prachi","19-25","Female","Student","Sylhet","5 ","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Studying / Educational use / Corporate use","7-8 hours","After 12AM","Average","5","3","sometimes","No","Yes","Spending quality time with your family"
+        "2026/05/08 7:07:56 pm GMT+6","dhruboraj.live@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Dhanya Raj Choudhury","16-18","Male","Student","Sylhet","1","Less than 1 hour","Gaming;Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Good","4","4","sometimes","No","No","Reducing social media usage through app restrictions.;Avoiding high time usage of phone."
+        "2026/05/08 8:53:20 pm GMT+6","puniabc@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Pronomi Deb Nath Punni ","13-15","Female","Student","Sylhet ","5","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc)","7-8 hours","10PM -12AM","Good","3","3","often","Not sure","Yes","Spending quality time with your family;Avoiding mobile phone at least an hour before bed"
+        "2026/05/08 10:32:15 pm GMT+6","kb2497309@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Mahedi Hasan Sakib","16-18","Male","Student","Sylhet","4 ","2-3 hours","Social Media ( Facebook , Instagram , etc);Watching Videos ( Youtube , Netflix , etc);Gaming;Studying / Educational use / Corporate use","8+ hours","After 12AM","Good","5","3","sometimes","Not sure","Yes","Spending quality time with your family;Reducing social media usage through app restrictions."
+        "2026/05/09 6:59:45 pm GMT+6","jannatul.maua2010@gmail.com","I confirm that I am participating in this survey willingly.;I understand that my data will be used solely for research and analysis.;I am aware that my responses will remain confidential.","Jannatul Mawa ","16-18","Female","Student","Bagerhat ","1","Less than 1 hour","Social Media ( Facebook , Instagram , etc);Studying / Educational use / Corporate use","7-8 hours","10PM -12AM","Average","1","3","sometimes","No","No","Engaging in physical activities ( sports , exercise , etc );Spending quality time with your family;Avoiding mobile phone at least an hour before bed;Use phone as a daily routine reminder"`;
+
+        function loadDefaultData() {
+            const records = parseCSV(DEFAULT_CSV);
+            currentRecords = records;
+            renderAllCharts(records);
+            document.getElementById('rowCountBadge').innerText = records.length + ' records (default)';
+        }
+
+        async function fetchFromGoogleSheets(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(
+                'Failed to fetch from the provided URL. Please check that the URL is correct and the sheet is published as CSV.'
+                );
+            const csvText = await response.text();
+            if (!csvText || csvText.trim().length === 0) throw new Error(
+                'The URL returned empty data. Please ensure the Google Sheet is published correctly.');
+            const records = parseCSV(csvText);
+            if (records.length < 2) throw new Error(
+                'The fetched CSV contains insufficient data. It must have a header row and at least one data row.');
+            return records;
+        }
+
+        document.getElementById('fetchUrlBtn').addEventListener('click', async () => {
+            const url = document.getElementById('gsheetUrlInput').value.trim();
+            if (!url) {
+                alert('Please paste a Google Sheets published CSV URL in the input field first.');
+                return;
             }
-
-            function loop() {
-                if (!analyser || !isListening) {
-                    animationId = requestAnimationFrame(loop);
-                    return;
-                }
-
-                analyser.getByteTimeDomainData(timeData);
-                analyser.getByteFrequencyData(dataArray);
-
-                const rms = computeRms(timeData);
-                const peak = computePeak(timeData);
-                const flatness = computeSpectralFlatness(dataArray);
-
-                const levelPercent = Math.min(1, rms / 0.03);
-
-                updateDetection(rms, peak, flatness);
-                updateUI(rms, peak, levelPercent);
-                drawWaveform(timeData);
-                updateDebugPanel(rms, peak, flatness);
-
-                animationId = requestAnimationFrame(loop);
+            const fetchBtn = document.getElementById('fetchUrlBtn');
+            const originalText = fetchBtn.innerHTML;
+            fetchBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching...';
+            fetchBtn.disabled = true;
+            try {
+                const records = await fetchFromGoogleSheets(url);
+                currentRecords = records;
+                renderAllCharts(records);
+                document.getElementById('rowCountBadge').innerText = records.length + ' records (live)';
+            } catch (err) {
+                alert('Error fetching data: ' + err.message);
+            } finally {
+                fetchBtn.innerHTML = originalText;
+                fetchBtn.disabled = false;
             }
+        });
 
-            let debugUpdateCounter = 0;
-
-            function updateDebugPanel(rms, peak, flatness) {
-                debugUpdateCounter++;
-                if (debugUpdateCounter % 2 !== 0) return;
-                const threshold = baseline * thresholdMultiplier;
-                DOM.dRms.textContent = rms !== undefined ? rms.toFixed(5) : '—';
-                DOM.dPeak.textContent = peak !== undefined ? peak.toFixed(4) : '—';
-                DOM.dBaseline.textContent = baseline.toFixed(5);
-                DOM.dThreshold.textContent = threshold.toFixed(5);
-                // Show confidence from RMS
-                let conf = 0;
-                if (rms !== undefined && rms > threshold) {
-                    conf = Math.min(1, (rms - threshold) / (threshold * 2));
-                }
-                DOM.dConfidence.textContent = Math.round(conf * 100) + '%';
-                DOM.dTimer.textContent = detectionActive ? Math.round(detectionTimer) + 'ms' : '—';
-                DOM.dStatus.textContent = state;
-                DOM.dCalib.textContent = calibrationCount > 0 ? calibrationCount + ' samples' : 'done';
-                DOM.dFlatness.textContent = flatness !== undefined ? flatness.toFixed(3) : '—';
-                updateDebugTestUI();
-            }
-
-            async function startDetection() {
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
                 try {
-                    DOM.welcome.style.display = 'none';
-                    DOM.detection.style.display = 'flex';
-
-                    isDetected = false;
-                    detectionActive = false;
-                    isListening = false;
-                    calibrationSamples = [];
-                    calibrationCount = 0;
-                    DOM.detectedOverlay.classList.remove('show');
-                    suppressUntil = 0;
-                    resetTestStatus();
-
-                    const stream = await setupMicrophone();
-                    setupAudioPipeline(stream);
-
-                    isListening = true;
-                    setState(STATE.CALIBRATING);
-                    calibrationStart = performance.now();
-
-                    if (animationId) cancelAnimationFrame(animationId);
-                    loop();
-
+                    const records = parseCSV(ev.target.result);
+                    if (records.length < 2) throw new Error('CSV file has insufficient data.');
+                    currentRecords = records;
+                    renderAllCharts(records);
+                    document.getElementById('rowCountBadge').innerText = records.length + ' records (uploaded)';
+                    document.getElementById('gsheetUrlInput').value = '';
                 } catch (err) {
-                    let msg = 'microphone error';
-                    if (err.message === 'permission-denied') {
-                        msg = 'permission denied. please allow microphone access and try again.';
-                        DOM.welcomeError.innerHTML = msg + ' <span class="retry-link" id="retryPermBtn">retry</span>';
-                        document.getElementById('retryPermBtn')?.addEventListener('click', () => {
-                            DOM.welcomeError.textContent = '';
-                            startDetection();
-                        });
-                    } else if (err.message === 'no-microphone') {
-                        msg = 'no microphone found. please connect a mic and refresh.';
-                        DOM.welcomeError.textContent = msg;
-                    } else {
-                        msg = 'could not access microphone: ' + err.message;
-                        DOM.welcomeError.textContent = msg;
-                    }
-                    DOM.welcome.style.display = 'flex';
-                    DOM.detection.style.display = 'none';
-                    setState(STATE.ERROR);
-                    DOM.welcomeError.style.display = 'block';
+                    alert('CSV error: ' + err.message);
                 }
-            }
-
-            function stopDetection() {
-                isListening = false;
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                    animationId = null;
-                }
-                if (stream) {
-                    stream.getTracks().forEach(t => t.stop());
-                    stream = null;
-                }
-                if (audioContext && audioContext.state !== 'closed') {
-                    audioContext.close().catch(() => {});
-                    audioContext = null;
-                }
-                analyser = null;
-                dataArray = null;
-                timeData = null;
-            }
-
-            function resetAfterDetection() {
-                if (!isDetected) return;
-                isDetected = false;
-                detectionActive = false;
-                DOM.detectedOverlay.classList.remove('show');
-                DOM.statusBadge.textContent = 'listening…';
-                DOM.statusBadge.className = 'status-badge listening';
-                DOM.micIcon.className = 'fa-solid fa-microphone mic-icon active';
-                DOM.micRing.className = 'mic-ring active';
-                DOM.meterFill.className = 'meter-fill';
-                DOM.confDot.className = 'conf-dot active';
-                DOM.confValue.textContent = '0%';
-                DOM.stateLabel.textContent = 'listening';
-                setState(STATE.LISTENING);
-                suppressUntil = performance.now() + 200;
-                resetTestStatus();
-                updateDebugPanel();
-            }
-
-            window.onBlowDetected = function() {
-                console.log('🎉 blow detected! (hook called)');
             };
+            reader.readAsText(file, 'UTF-8');
+        });
 
-            DOM.enableBtn.addEventListener('click', () => {
-                DOM.enableBtn.disabled = true;
-                DOM.enableBtn.textContent = 'connecting…';
-                startDetection().finally(() => {
-                    DOM.enableBtn.disabled = false;
-                    DOM.enableBtn.innerHTML =
-                        '<i class="fa-solid fa-microphone" style="margin-right:10px;"></i>Enable Microphone';
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('gsheetUrlInput').value = '';
+            document.getElementById('fileInput').value = '';
+            loadDefaultData();
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().trim();
+                const sections = document.querySelectorAll('.chart-section');
+                let anyVisible = false;
+                sections.forEach(section => {
+                    const title = section.querySelector('.chart-header h3')?.textContent?.toLowerCase() || '';
+                    const axisInfo = section.querySelector('.axis-info')?.textContent?.toLowerCase() || '';
+                    const fullText = (title + ' ' + axisInfo).toLowerCase();
+                    const match = query === '' || fullText.includes(query);
+                    section.style.display = match ? '' : 'none';
+                    if (match) anyVisible = true;
                 });
             });
+        }
 
-            DOM.resetBtn.addEventListener('click', resetAfterDetection);
-
-            DOM.testResetBtn.addEventListener('click', function() {
-                triggerCount = 0;
-                resetTestStatus();
-                updateDebugPanel();
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        hamburgerBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        });
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+        sidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 900) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('open');
+                }
             });
+        });
 
-            DOM.debugToggle.addEventListener('click', () => {
-                const panel = DOM.debugPanel;
-                const toggle = DOM.debugToggle;
-                const isOpen = panel.classList.toggle('open');
-                toggle.classList.toggle('open', isOpen);
-            });
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        themeToggle.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.body.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            } else {
+                document.body.classList.remove('dark');
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+            if (currentRecords.length > 0) {
+                renderAllCharts(currentRecords);
+            }
+        });
 
-            document.addEventListener('click', (e) => {
-                const panel = DOM.debugPanel;
-                const toggle = DOM.debugToggle;
-                if (panel.classList.contains('open')) {
-                    if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-                        panel.classList.remove('open');
-                        toggle.classList.remove('open');
+        (function buildMappingTable() {
+            const tbody = document.getElementById('mappingTableBody');
+            for (let i = 1; i <= 25; i++) {
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    `<td style="border:1px solid var(--table-border);padding:5px;text-align:center;">${i}</td><td style="border:1px solid var(--table-border);padding:5px;"><a href="#chart${i}">${chartTitles[i]}</a></td><td style="border:1px solid var(--table-border);padding:5px;text-align:center;">${hypothesisMap[i]}</td>`;
+                tbody.appendChild(tr);
+            }
+        })();
+
+        // ============================================================
+        //  NEW: DOWNLOAD ALL AS PNGs IN A ZIP
+        // ============================================================
+        document.getElementById('downloadAllBtn').addEventListener('click', async function(e) {
+            const btn = this;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing...';
+            btn.disabled = true;
+
+            try {
+                const zip = new JSZip();
+
+                // 1. Capture all chart sections (1–25)
+                const chartSections = [];
+                for (let i = 1; i <= 25; i++) {
+                    const section = document.getElementById('chart' + i);
+                    if (section) chartSections.push({ id: i, el: section });
+                }
+
+                // Capture charts one by one with a small delay to let rendering settle
+                for (const { id, el } of chartSections) {
+                    try {
+                        // ensure the canvas is fully rendered
+                        const canvas = el.querySelector('canvas');
+                        if (canvas) {
+                            // Wait a tiny bit for any pending render
+                            await new Promise(r => setTimeout(r, 50));
+                        }
+                        const captured = await html2canvas(el, {
+                            backgroundColor: isDarkMode ? '#1a1a2e' : '#ffffff',
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            allowTaint: false,
+                            width: el.scrollWidth,
+                            height: el.scrollHeight
+                        });
+                        const dataUrl = captured.toDataURL('image/png');
+                        const safeName = 'chart_' + String(id).padStart(2, '0') + '_' +
+                            chartTitles[id].replace(/[^a-zA-Z0-9]/g, '_').substring(0, 40) + '.png';
+                        zip.file(safeName, dataUrl.split(',')[1], { base64: true });
+                    } catch (err) {
+                        console.warn('Failed to capture chart ' + id + ':', err);
+                        // fallback: try to capture just the canvas
+                        try {
+                            const canvas = el.querySelector('canvas');
+                            if (canvas) {
+                                const dataUrl = canvas.toDataURL('image/png');
+                                zip.file('chart_' + String(id).padStart(2, '0') + '_fallback.png', dataUrl.split(
+                                ',')[1], { base64: true });
+                            }
+                        } catch (e2) {
+                            console.warn('Fallback also failed for chart ' + id);
+                        }
                     }
                 }
-            });
 
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    if (timeData) drawWaveform(timeData);
-                }, 150);
-            });
+                // 2. Capture Hypotheses section (h2 + ol)
+                try {
+                    const hypothesesH2 = document.getElementById('hypotheses');
+                    const hypothesesOl = hypothesesH2?.nextElementSibling;
+                    if (hypothesesH2 && hypothesesOl && hypothesesOl.tagName === 'OL') {
+                        // Wrap them in a temporary container for capture
+                        const wrapper = document.createElement('div');
+                        wrapper.style.cssText =
+                            'background:' + (isDarkMode ? '#1a1a2e' : '#ffffff') + ';padding:20px 24px;border-radius:6px;max-width:820px;';
+                        wrapper.appendChild(hypothesesH2.cloneNode(true));
+                        wrapper.appendChild(hypothesesOl.cloneNode(true));
+                        // temporarily attach to body for capture
+                        wrapper.style.position = 'fixed';
+                        wrapper.style.left = '-9999px';
+                        wrapper.style.top = '0';
+                        wrapper.style.zIndex = '9999';
+                        document.body.appendChild(wrapper);
 
-            setState(STATE.IDLE);
-            DOM.welcome.style.display = 'flex';
-            DOM.detection.style.display = 'none';
-            DOM.welcomeError.style.display = 'block';
-            DOM.welcomeError.textContent = '';
+                        // Wait a frame for layout
+                        await new Promise(r => requestAnimationFrame(r));
 
-            const canvas = DOM.waveformCanvas;
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = (rect.width || 300) * (window.devicePixelRatio || 1);
-            canvas.height = (rect.height || 48) * (window.devicePixelRatio || 1);
-
-            console.log('🔊 blow detector ready · tap "Enable Microphone" to start');
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && isListening) {
+                        const captured = await html2canvas(wrapper, {
+                            backgroundColor: isDarkMode ? '#1a1a2e' : '#ffffff',
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            width: wrapper.scrollWidth,
+                            height: wrapper.scrollHeight
+                        });
+                        const dataUrl = captured.toDataURL('image/png');
+                        zip.file('hypotheses_H1_to_H25.png', dataUrl.split(',')[1], { base64: true });
+                        document.body.removeChild(wrapper);
+                    } else {
+                        // fallback: try to capture the h2 and its siblings
+                        const h2 = document.getElementById('hypotheses');
+                        if (h2) {
+                            const wrapper = document.createElement('div');
+                            wrapper.style.cssText =
+                                'background:' + (isDarkMode ? '#1a1a2e' : '#ffffff') + ';padding:20px 24px;border-radius:6px;max-width:820px;';
+                            wrapper.appendChild(h2.cloneNode(true));
+                            let next = h2.nextElementSibling;
+                            while (next && next.tagName === 'OL') {
+                                wrapper.appendChild(next.cloneNode(true));
+                                next = next.nextElementSibling;
+                            }
+                            wrapper.style.position = 'fixed';
+                            wrapper.style.left = '-9999px';
+                            wrapper.style.top = '0';
+                            wrapper.style.zIndex = '9999';
+                            document.body.appendChild(wrapper);
+                            await new Promise(r => requestAnimationFrame(r));
+                            const captured = await html2canvas(wrapper, {
+                                backgroundColor: isDarkMode ? '#1a1a2e' : '#ffffff',
+                                scale: 2,
+                                useCORS: true,
+                                logging: false,
+                                width: wrapper.scrollWidth,
+                                height: wrapper.scrollHeight
+                            });
+                            const dataUrl = captured.toDataURL('image/png');
+                            zip.file('hypotheses_H1_to_H25.png', dataUrl.split(',')[1], { base64: true });
+                            document.body.removeChild(wrapper);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Failed to capture hypotheses section:', err);
                 }
-            });
 
-        })();
+                // 3. Capture Quick Reference Table (h2 + table)
+                try {
+                    const refH2 = document.getElementById('quickref');
+                    const refContainer = refH2?.nextElementSibling;
+                    if (refH2 && refContainer) {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.cssText =
+                            'background:' + (isDarkMode ? '#1a1a2e' : '#ffffff') + ';padding:20px 24px;border-radius:6px;max-width:840px;';
+                        wrapper.appendChild(refH2.cloneNode(true));
+                        wrapper.appendChild(refContainer.cloneNode(true));
+                        wrapper.style.position = 'fixed';
+                        wrapper.style.left = '-9999px';
+                        wrapper.style.top = '0';
+                        wrapper.style.zIndex = '9999';
+                        document.body.appendChild(wrapper);
+                        await new Promise(r => requestAnimationFrame(r));
+                        const captured = await html2canvas(wrapper, {
+                            backgroundColor: isDarkMode ? '#1a1a2e' : '#ffffff',
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            width: wrapper.scrollWidth,
+                            height: wrapper.scrollHeight
+                        });
+                        const dataUrl = captured.toDataURL('image/png');
+                        zip.file('quick_reference_table.png', dataUrl.split(',')[1], { base64: true });
+                        document.body.removeChild(wrapper);
+                    }
+                } catch (err) {
+                    console.warn('Failed to capture quick reference table:', err);
+                }
+
+                // 4. Generate and download ZIP
+                const content = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = 'analytics_charts_and_reference.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+
+            } catch (err) {
+                console.error('Export error:', err);
+                alert('Export failed: ' + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        });
+
+        loadDefaultData();
     </script>
-
 </body>
 </html>
